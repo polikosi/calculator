@@ -24,6 +24,7 @@
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   button{font:inherit;border:1px solid #d5d9e0;background:#fff;border-radius:8px;padding:0 14px;min-height:40px;cursor:pointer;color:var(--text)}
   button:hover{background:#f0f2f5}
+  header button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-d);font-weight:600}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
   button.primary:hover{background:var(--accent-d)}
   button.icon{border:none;background:transparent;color:var(--muted);width:40px;padding:0;font-size:15px}
@@ -226,13 +227,6 @@
     <div id="trailer"></div>
     <div class="bars" id="trailer-bars"></div>
     <div class="legend" id="trailer-legend"></div>
-  </section>
-
-  <section>
-    <details id="pallets-details">
-      <summary id="t-pallets"></summary>
-      <div id="pallets"></div>
-    </details>
   </section>
 
   <section>
@@ -841,19 +835,6 @@ function update() {
     ? `<ul>${R.messages.map(m => `<li class="${m.level}">${esc(m.text)}</li>`).join('')}</ul>`
     : `<span class="ok">✓ ${T.allOk}</span>`;
 
-  // палети
-  $('t-pallets').textContent = T.pallets(R.pallets.length);
-  $('pallets').innerHTML = R.pallets.length ? `
-    <table class="list"><thead><tr><th>${T.thN}</th><th>${T.thClient}</th><th>${T.thProduct}</th><th class="r">${T.thKg}</th><th>${T.thStatus}</th></tr></thead>
-    <tbody>${R.pallets.map(p => `<tr>
-      <td class="num">${p.n}</td>
-      <td><span class="dot" style="background:${p.r.color}"></span> ${esc(p.r.client || '—')}</td>
-      <td>${esc(p.r.product.name)}</td>
-      <td class="r num">${fmt(p.kg)}</td>
-      <td>${p.partial ? T.partial : T.full}${p.over ? ` · ${T.overweight}` : ''}${p.overSlots ? ` · ${T.overSlots}` : p.overTruck ? ` · ${T.overTruckKg}` : ''}</td>
-    </tr>`).join('')}</tbody></table>`
-    : `<span class="muted">${T.noPallets}</span>`;
-
   renderTrailer(R);
   renderTO(R);
   save();
@@ -900,8 +881,12 @@ async function copyTO(statusId = 'to-status') {
   const rows = buildTO(calc());
   const clean = s => s.replace(/[\t\r\n]+/g, ' ');
   const text = 'TRANSPORT ORDER\n' + rows.map(([a, b]) => `${clean(a)}\t${clean(b)}`).join('\n');
-  const html = `<table border="1" style="border-collapse:collapse"><tr><th colspan="2">TRANSPORT ORDER</th></tr>` +
-    rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('') + `</table>`;
+  // інлайн-стилі й bgcolor — щоб Excel, Outlook і Gmail зберегли кольори та рамки
+  const base = 'border:1px solid #c9876a;padding:4px 8px;font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;vertical-align:top;';
+  const td = (txt, w, bold) => `<td bgcolor="#f6c3aa" ${w ? `width="${w}"` : ''} style="${base}background:#f6c3aa;${w ? `width:${w}px;` : ''}${bold ? 'font-weight:bold;' : ''}">${esc(txt)}</td>`;
+  const html = `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c9876a">` +
+    `<tr><th colspan="2" bgcolor="#f2a986" style="${base}background:#f2a986;font-weight:bold;text-align:center;font-size:12pt">TRANSPORT ORDER</th></tr>` +
+    rows.map(([a, b, auto]) => `<tr>${td(a, 380)}${td(b, 560, auto)}</tr>`).join('') + `</table>`;
   const st = $(statusId);
   try {
     if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
@@ -983,7 +968,8 @@ function placeInTrailer(list) {
   return out;
 }
 
-function renderTrailer(R) {
+function renderTrailer(R, labelScale = 1) {
+  const ls = labelScale;              // для PDF підписи більші
   const S = R.S;
   const s = 55;                                   // px на метр
   const ang = 35 * Math.PI / 180, k = 0.75;       // глибина в проєкції
@@ -1028,15 +1014,16 @@ function renderTrailer(R) {
         'fill="url(#hatch)" stroke="#dc2626" stroke-width="1.5"');
     }
     if (withLabel) {
-      const tall = h * s >= 28;
+      const tall = h * s >= 28 * ls;
       // висока палета — підпис на ній; низька — над нею
       const c = tall ? P((x0 + x1) / 2, yb + hb + h / 2, z0) : P((x0 + x1) / 2, yb + hb + h, z0);
       const col = tall && !red ? '#fff' : (red && tall ? '#fff' : '#1d2330');
-      const y1 = tall ? c[1] - 2 : c[1] - 16, y2 = tall ? c[1] + 10 : c[1] - 5;
-      const nm = p.r.label.length > 11 ? p.r.label.slice(0, 10) + '…' : p.r.label;
+      const y1 = tall ? c[1] - 2 * ls : c[1] - 16 * ls, y2 = tall ? c[1] + 10 * ls : c[1] - 5 * ls;
+      const maxCh = Math.floor(11 / ls);
+      const nm = p.r.label.length > maxCh ? p.r.label.slice(0, maxCh - 1) + '…' : p.r.label;
       const halo = tall ? '' : ' stroke="#fff" stroke-width="3" paint-order="stroke"';
-      g += `<text x="${c[0].toFixed(1)}" y="${y1.toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="${col}"${halo}>${esc(nm)}</text>`;
-      g += `<text x="${c[0].toFixed(1)}" y="${y2.toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${col}"${halo}>${fmt(p.kg)} кг</text>`;
+      g += `<text x="${c[0].toFixed(1)}" y="${y1.toFixed(1)}" text-anchor="middle" font-size="${10 * ls}" font-weight="600" fill="${col}"${halo}>${esc(nm)}</text>`;
+      g += `<text x="${c[0].toFixed(1)}" y="${y2.toFixed(1)}" text-anchor="middle" font-size="${9.5 * ls}" fill="${col}"${halo}>${fmt(p.kg)} кг</text>`;
     }
     return g + '</g>';
   };
@@ -1134,8 +1121,14 @@ function renderAll() { renderSettings(); renderProducts(); renderTrip(); renderC
 /* =========================================================
    ПОДІЇ
    ========================================================= */
-$('btn-settings').onclick = () => { const s = $('settings'); s.hidden = !s.hidden; };
-$('btn-catalog').onclick = () => { const s = $('catalog'); s.hidden = !s.hidden; };
+function togglePanel(btnId, panelId) {
+  const p = $(panelId), b = $(btnId);
+  p.hidden = !p.hidden;
+  b.classList.toggle('on', !p.hidden);
+  b.setAttribute('aria-pressed', String(!p.hidden));
+}
+$('btn-settings').onclick = () => togglePanel('btn-settings', 'settings');
+$('btn-catalog').onclick = () => togglePanel('btn-catalog', 'catalog');
 $('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
 const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
 $('btn-clear-no').onclick = hideConfirm;
@@ -1252,10 +1245,12 @@ async function ensurePdfMake() {
   if (!window.pdfMake.vfs) await loadScript(VFS_URL);
 }
 async function trailerPng() {
+  const R = calc();
+  renderTrailer(R, 1.3);              // тимчасово — версія з більшими підписами для PDF
   try {
     const el = document.querySelector('#trailer svg');
     if (!el) return null;
-    const vb = el.viewBox.baseVal, k = 2;
+    const vb = el.viewBox.baseVal, k = 3;
     const xml = new XMLSerializer().serializeToString(el);
     const img = new Image();
     await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml); });
@@ -1266,6 +1261,7 @@ async function trailerPng() {
     ctx.drawImage(img, 0, 0, c.width, c.height);
     return { data: c.toDataURL('image/png'), w: vb.width, h: vb.height };
   } catch (e) { return null; }
+  finally { renderTrailer(R); }
 }
 const plain = html => String(html).replace(/<[^>]+>/g, '');
 
@@ -1315,29 +1311,14 @@ async function buildPdfDoc() {
     ? { ul: R.messages.map(m => ({ text: m.text, color: m.level === 'err' ? '#c62828' : '#b45309' })) }
     : { text: T.allOk, color: '#15803d' });
   if (img) {
-    content.push(h2(T.trailer));
-    content.push({ image: img.data, width: W });
-  }
-  if (R.pallets.length) {
-    content.push(h2(T.pallets(R.pallets.length)));
-    content.push({
-      table: { headerRows: 1, widths: [20, 8, '*', 60, 160],
-        body: [[th(T.thN), th(''), th(`${T.thClient} · ${T.thProduct}`), th(T.thKg), th(T.thStatus)],
-          ...R.pallets.map(p => {
-            const b = p.over || p.overSlots || p.overTruck;
-            const fill = b ? '#fdecec' : null;
-            const status = (p.partial ? T.partial : T.full) + (p.over ? ' · ' + T.overweight : '') +
-              (p.overSlots ? ' · ' + T.overSlots : p.overTruck ? ' · ' + T.overTruckKg : '');
-            return [
-              { text: String(p.n), fillColor: fill },
-              { text: '', fillColor: p.r.color },
-              { text: `${p.r.client || '—'} · ${p.r.product.name}`, fillColor: fill },
-              { text: fmt(p.kg), alignment: 'right', fillColor: fill },
-              { text: status, fillColor: fill, color: b ? '#c62828' : '#1d2330' },
-            ];
-          })] },
-      layout: 'lightHorizontalLines',
-    });
+    // окрема альбомна сторінка — причіп на всю ширину, щоб назви клієнтів читалися
+    content.push({ ...h2(T.trailer), pageBreak: 'before', pageOrientation: 'landscape' });
+    content.push({ image: img.data, width: 778 });
+    const legend = R.clientSum.filter(c => c.pallets);
+    if (legend.length) content.push({ margin: [0, 8, 0, 0], columns: legend.map(c => ({ width: 'auto', columns: [
+      { canvas: [{ type: 'rect', x: 0, y: 2, w: 10, h: 10, color: c.color }], width: 14 },
+      { text: `${c.idx}. ${c.name} — ${c.pallets} ${T.palShort}, ${fmt(c.kg)} кг`, width: 'auto', fontSize: 10 },
+    ], columnGap: 2 })), columnGap: 18 });
   }
   return {
     pageSize: 'A4', pageMargins: [32, 32, 32, 36],
