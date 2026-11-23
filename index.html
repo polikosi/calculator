@@ -3,90 +3,133 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Калькулятор завантаження палет і фури</title>
+<title>Калькулятор завантаження фури</title>
 <style>
   :root{
-    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#6b7280; --line:#e3e6eb;
-    --accent:#2563eb; --accent-soft:#e8efff; --warn:#b45309; --err:#c62828;
-    --radius:10px;
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5b6472; --line:#e3e6eb;
+    --accent:#2563eb; --accent-d:#1d4ed8; --accent-soft:#e8efff; --warn:#b45309; --err:#c62828; --ok:#15803d;
+    --radius:12px;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
-    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
-  .wrap{max-width:1100px;margin:0 auto;padding:16px}
-  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  h1{font-size:20px;margin:0}
-  h2{font-size:16px;margin:0 0 10px}
-  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  .wrap{max-width:1240px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+  h1{font-size:21px;margin:0}
+  h2{font-size:16px;margin:0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:12px}
+  .sec-head .sub{font-size:13px;color:var(--muted)}
+  .sec-head .grow{flex:1}
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--text)}
+  button{font:inherit;border:1px solid #d5d9e0;background:#fff;border-radius:8px;padding:0 14px;min-height:40px;cursor:pointer;color:var(--text)}
   button:hover{background:#f0f2f5}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  button.primary:hover{background:#1d4ed8}
-  button.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px}
-  button.ghost:hover{color:var(--err);background:#fdecec}
-  button.add{margin-top:10px;color:var(--accent);border-style:dashed}
-  input,select{font:inherit;border:1px solid #cfd4dc;border-radius:7px;padding:6px 8px;background:#fff;color:var(--text);width:100%;min-width:0}
-  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
-  label.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--accent-d)}
+  button.icon{border:none;background:transparent;color:var(--muted);width:40px;padding:0;font-size:15px}
+  button.icon:hover{color:var(--err);background:#fdecec}
+  button.icon.tog:hover{color:var(--text);background:#eef0f3}
+  button.add{border:1px dashed #93a4c3;color:var(--accent-d);min-height:36px;padding:0 12px}
+  button.add.big{min-height:44px;border-radius:var(--radius);font-weight:600;width:100%}
+  button:disabled{opacity:.6;cursor:wait}
+  input,select,textarea{font:inherit;border:1px solid #cfd4dc;border-radius:8px;padding:0 10px;background:#fff;color:var(--text);width:100%;min-width:0;min-height:40px}
+  textarea{padding:8px 10px;resize:vertical;min-height:56px}
+  select{padding:0 8px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  label.fld,.fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
   .num{font-variant-numeric:tabular-nums}
   .muted{color:var(--muted)}
   .small{font-size:13px}
-  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;flex:none}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;flex:none}
+  #pdf-status,#to-status{font-size:13px;color:var(--muted)}
+  #pdf-status.err,#to-status.err{color:var(--err)}
+  .confirm{display:none;gap:6px;align-items:center;font-size:14px}
+  .confirm.show{display:inline-flex}
 
-  /* settings */
-  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  /* layout */
+  .layout{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  .col-main{flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px}
+  .col-side{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:16px;position:sticky;top:12px}
+  @media (max-width:980px){.col-side{position:static}}
 
-  /* products */
-  .prod-row{display:grid;grid-template-columns:18px 2fr 1fr 1fr 1fr 1.3fr 34px;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
-  .prod-row:first-of-type{border-top:none}
-  .prod-row .dot{margin-bottom:9px}
-  .prod-max{padding-bottom:7px;font-size:13px}
+  /* settings + catalog */
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .prod-row{display:grid;grid-template-columns:14px 2fr 1fr 1fr 1fr 1.2fr 40px;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
+  .prod-row:first-child{border-top:none}
+  .prod-row .dot{margin-bottom:15px}
+  .prod-max{padding-bottom:10px;font-size:13px}
   .prod-err{grid-column:2 / -1;font-size:13px;color:var(--err)}
 
-  /* positions */
-  .pos{border:1px solid var(--line);border-left:5px solid #ccc;border-radius:8px;padding:10px;margin-bottom:10px}
-  .pos-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600;font-size:14px}
-  .pos-grid{display:grid;grid-template-columns:1.6fr 1.6fr 1.4fr 1fr;gap:8px}
-  .pos-res{margin-top:8px;font-size:14px}
-  .pos-res .detail{color:var(--muted);font-size:13px}
-  .pos-note{font-size:13px;color:var(--muted);margin-top:4px}
+  /* trip */
+  .trip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .trip-grid .wide{grid-column:1 / -1}
+  .dt{display:flex;gap:6px}
+  .dt input[type=date]{flex:1.4}
+  .dt input[type=time]{flex:1}
+  .seg{display:flex;border:1px solid #cfd4dc;border-radius:8px;overflow:hidden;min-height:44px}
+  .seg button{flex:1;border:none;border-radius:0;min-height:44px;padding:2px 4px;line-height:1.2;font-size:13px;background:#fff}
+  .seg button+button{border-left:1px solid #cfd4dc}
+  .seg button small{display:block;font-size:11px;color:var(--muted)}
+  .seg button.on{background:var(--accent-d);color:#fff;font-weight:600}
+  .seg button.on small{color:#e6ecff}
+
+  /* clients */
+  .client{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .client-head{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line)}
+  .client.collapsed .client-head{border-bottom:none}
+  .badge{width:28px;height:28px;border-radius:50%;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .client-head .name{flex:1;min-width:0;font-size:15px;font-weight:600;min-height:38px}
+  .client-head .tot{white-space:nowrap;font-size:14px}
+  .client-head .sumline{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .client-head .sumline span{font-weight:400;color:var(--muted);font-size:13px}
+  .client-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .client.collapsed .client-body{display:none}
+  .addr-grid{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+  .items{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .item{display:grid;grid-template-columns:2fr 1fr 1.1fr 1.3fr 40px;gap:8px;padding:6px 10px;align-items:center}
+  .item+.item{border-top:1px solid #eef0f3}
+  .item.hd{background:#f7f8fa;font-size:12px;color:var(--muted);font-weight:600;padding-top:7px;padding-bottom:7px}
+  .item select,.item input{min-height:38px}
+  .ires{font-size:13px;color:#374151}
+  .ires .warn{color:var(--warn)}
+  .ires .err{color:var(--err)}
 
   /* summary */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .card{border:1px solid var(--line);border-radius:8px;padding:10px}
   .card .lbl{font-size:12px;color:var(--muted)}
-  .card .val{font-size:22px;font-weight:650}
+  .card .val{font-size:22px;font-weight:700}
   .card .sub{font-size:12px;color:var(--muted)}
-  .clients{margin-top:12px}
-  .clients h3{font-size:13px;margin:0 0 6px;color:var(--muted);font-weight:600}
-  .client-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
-  .client-row:first-of-type{border-top:none}
-  .client-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ctab{width:auto;min-width:min(100%,420px);max-width:560px;border-collapse:collapse;font-size:14px}
-  .ctab td{padding:4px 10px;border:none}
+  .card.over .val{color:var(--err)}
+  .status{padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px}
+  .status.ok{background:#ecfaf1;color:#14532d}
+  .status.bad{background:#fdecec;color:#991b1b}
+  .free{margin-top:8px;font-size:13px;color:var(--muted)}
+  .ctab{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+  .ctab td{padding:4px 6px;border:none}
   .ctab td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .ctab tr.c td{font-weight:650;padding-top:9px;border-top:1px solid var(--line)}
-  .ctab tbody:first-child tr.c td{border-top:none;padding-top:4px}
-  .ctab tr.p td:first-child{padding-left:28px}
+  .ctab tr.c td{font-weight:650;padding-top:8px;border-top:1px solid var(--line)}
+  .ctab tbody:first-child tr.c td{border-top:none}
+  .ctab tr.p td:first-child{padding-left:22px}
   .ctab tr.p:nth-child(even) td{background:#f3f5f8}
   .ctab tr.p:hover td{background:var(--accent-soft)}
   .ctab tr.p td{color:#374151}
   .ctab .u{color:var(--muted);font-weight:400}
-  .free{margin-top:10px;padding:10px;border-radius:8px;background:var(--accent-soft);font-size:14px}
 
   /* checks */
   #checks ul{margin:0;padding-left:18px}
   #checks li{margin:3px 0}
   #checks li.err{color:var(--err)}
   #checks li.warn{color:var(--warn)}
-  #checks .ok{color:#15803d}
+  #checks .ok{color:var(--ok)}
 
-  /* pallets table */
-  table{border-collapse:collapse;width:100%}
-  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:14px}
-  th{font-size:12px;color:var(--muted);font-weight:600}
-  td.r,th.r{text-align:right}
+  /* tables */
+  table.list{border-collapse:collapse;width:100%}
+  table.list th,table.list td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:14px}
+  table.list th{font-size:12px;color:var(--muted);font-weight:600}
+  table.list td.r,table.list th.r{text-align:right}
+  details summary{cursor:pointer;font-size:16px;font-weight:600}
+  details[open] summary{margin-bottom:10px}
 
   /* trailer */
   #trailer svg{width:100%;height:auto;display:block}
@@ -100,18 +143,25 @@
   .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--muted)}
   .legend span{display:inline-flex;align-items:center;gap:5px}
   .sw{width:14px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
-  #pdf-status.err{color:var(--err)}
-  button:disabled{opacity:.6;cursor:wait}
-  .confirm{display:none;gap:6px;align-items:center;font-size:14px}
-  .confirm.show{display:inline-flex}
 
-  @media (max-width:720px){
-    .prod-row{grid-template-columns:18px 1fr 1fr 34px}
+  /* transport order */
+  .to-box{overflow-x:auto}
+  table.to{width:100%;min-width:720px;border-collapse:collapse;font-size:14px}
+  table.to th,table.to td{border:1px solid #c9876a;padding:5px 10px;background:#f6c3aa;text-align:left;vertical-align:top}
+  table.to th{background:#f2a986;text-align:center;font-size:15px}
+  table.to td:first-child{width:38%}
+  table.to td.auto{font-weight:600}
+
+  @media (max-width:760px){
+    .trip-grid{grid-template-columns:1fr 1fr}
+    .addr-grid{grid-template-columns:1fr}
+    .item{grid-template-columns:1fr 1fr 40px}
+    .item .i-prod{grid-column:1 / 3}
+    .item .i-res{grid-column:1 / 3}
+    .item.hd{display:none}
+    .prod-row{grid-template-columns:14px 1fr 1fr 40px}
     .prod-row .f-name{grid-column:2 / 4}
-    .prod-row .f-plimit{grid-column:2 / 3}
-    .prod-row .f-space{grid-column:3 / 4}
     .prod-row .prod-max{grid-column:2 / 5}
-    .pos-grid{grid-template-columns:1fr 1fr}
   }
 </style>
 </head>
@@ -120,8 +170,10 @@
   <header>
     <h1 id="t-title"></h1>
     <div class="actions">
-      <span class="small muted" id="pdf-status"></span>
+      <span id="pdf-status"></span>
       <button class="primary" id="btn-pdf"></button>
+      <button id="btn-copy-to-top"></button>
+      <button id="btn-catalog"></button>
       <button id="btn-settings"></button>
       <button id="btn-clear"></button>
       <span class="confirm" id="clear-confirm">
@@ -133,44 +185,60 @@
   </header>
 
   <section id="settings" hidden>
-    <h2 id="t-settings"></h2>
+    <div class="sec-head"><h2 id="t-settings"></h2></div>
     <div class="settings-grid" id="settings-grid"></div>
   </section>
 
-  <section>
-    <h2 id="t-products"></h2>
+  <section id="catalog" hidden>
+    <div class="sec-head"><h2 id="t-products"></h2><span class="sub" id="t-products-sub"></span></div>
     <div id="products"></div>
-    <button class="add" id="btn-add-product"></button>
+    <button class="add" id="btn-add-product" style="margin-top:10px"></button>
   </section>
 
-  <section>
-    <h2 id="t-positions"></h2>
-    <div id="positions"></div>
-    <button class="add" id="btn-add-position"></button>
-  </section>
+  <div class="layout">
+    <main class="col-main">
+      <section>
+        <div class="sec-head"><h2 id="t-trip"></h2><span class="sub" id="t-trip-sub"></span></div>
+        <div class="trip-grid" id="trip"></div>
+      </section>
+      <div class="sec-head" style="margin:0 2px -4px"><h2 id="t-clients"></h2><span class="sub" id="t-clients-sub"></span></div>
+      <div id="clients" style="display:flex;flex-direction:column;gap:12px"></div>
+      <button class="add big" id="btn-add-client"></button>
+    </main>
+
+    <aside class="col-side">
+      <section>
+        <div class="sec-head"><h2 id="t-summary"></h2></div>
+        <div class="cards" id="summary"></div>
+        <div id="status"></div>
+        <div class="free" id="free"></div>
+        <div id="clients-sum"></div>
+      </section>
+      <section id="checks">
+        <div class="sec-head"><h2 id="t-checks"></h2></div>
+        <div id="checks-body"></div>
+      </section>
+    </aside>
+  </div>
 
   <section>
-    <h2 id="t-summary"></h2>
-    <div class="cards" id="summary"></div>
-    <div class="clients" id="clients-sum"></div>
-    <div class="free" id="free"></div>
-  </section>
-
-  <section>
-    <h2 id="t-trailer"></h2>
+    <div class="sec-head"><h2 id="t-trailer"></h2></div>
     <div id="trailer"></div>
     <div class="bars" id="trailer-bars"></div>
     <div class="legend" id="trailer-legend"></div>
   </section>
 
-  <section id="checks">
-    <h2 id="t-checks"></h2>
-    <div id="checks-body"></div>
+  <section>
+    <details id="pallets-details">
+      <summary id="t-pallets"></summary>
+      <div id="pallets"></div>
+    </details>
   </section>
 
   <section>
-    <h2 id="t-pallets"></h2>
-    <div id="pallets"></div>
+    <div class="sec-head"><h2>Transport Order</h2><span class="sub" id="t-to-sub"></span><span class="grow"></span>
+      <span id="to-status"></span><button id="btn-copy-to"></button></div>
+    <div class="to-box" id="to"></div>
   </section>
 </div>
 
@@ -179,65 +247,82 @@
    ТЕКСТИ — усі написи в одному місці (для майбутніх EN/SK)
    ========================================================= */
 const T = {
-  title: 'Калькулятор завантаження палет і фури',
+  title: 'Калькулятор завантаження фури',
   settingsBtn: 'Налаштування',
-  clearBtn: 'Очистити все',
-  clearQ: 'Почати новий розрахунок? Позиції буде видалено.',
-  yes: 'Так, очистити', no: 'Скасувати',
-  settings: 'Ліміти',
+  catalogBtn: 'Довідник товарів',
+  clearBtn: 'Новий рейс',
+  clearQ: 'Почати новий рейс? Клієнти й товари буде видалено.',
+  yes: 'Так', no: 'Скасувати',
+  settings: 'Ліміти фури',
   sTruck: 'Макс. вага продукту у фурі, кг',
   sSlots: 'Макс. палет у фурі (місць)',
   products: 'Довідник товарів',
+  productsSub: 'налаштовується один раз',
   pName: 'Назва', pWeight: 'Вага коробки, кг', pSpace: 'Макс. коробок на палеті', pLimit: 'Макс. вага палети, кг',
   pSpaceHint: 'необов\'язково',
-  pMax: (n, kg, by) => `На палету: <b class="num">${n}</b> кор. · ${kg} кг <span class="muted">${by === 'space' ? '(обмежує кількість)' : '(обмежує вага)'}</span>`,
+  pMax: (kg, by) => `На палету: <b class="num">${kg}</b> кг <span class="muted">${by === 'space' ? '(обмежує місце)' : '(обмежує вага)'}</span>`,
   addProduct: '+ Додати товар',
   defaultName: n => `Товар ${n}`,
-  positions: 'Позиції завантаження',
-  posN: n => `Позиція ${n}`,
-  fClient: 'Клієнт', clientPh: 'назва клієнта',
-  fProduct: 'Товар', fMode: 'Як задати кількість', fBpp: 'Коробок на палеті',
-  chooseProduct: '— оберіть товар —',
-  modes: { boxes: 'Кількість коробок', kg: 'Кількість кг', pallets: 'Кількість палет (повних)', fill: 'Заповнити фуру' },
-  valueLabel: { boxes: 'Коробок', kg: 'Кілограмів', pallets: 'Палет' },
-  fillNote: 'Кількість рахується автоматично: максимум цього товару у вільних кг і місцях.',
-  addPosition: '+ Додати позицію',
-  enterValue: 'Введіть кількість',
-  fromKg: (req, kg) => `Із ${req} кг → фактично ${kg} кг (вниз до цілих коробок)`,
-  palletsDetail: (full, bpp, rem, remKg) => {
-    const a = [];
-    if (full) a.push(`${full} × ${bpp} кор. (повні)`);
-    if (rem) a.push(`1 неповна: ${rem} кор. (${remKg} кг)`);
-    return a.join(' + ');
+
+  trip: 'Рейс', tripSub: 'загальні дані Transport Order',
+  fLoadAddress: 'Адреса завантаження', fLoadDT: 'Дата і час завантаження', fTemp: 'Температурний режим',
+  fOrderNo: 'Номер замовлення', fPayer: 'Платник за транспорт', fContact: 'Контактна особа на складі', fSpecial: 'Особливі вимоги',
+  temps: {
+    tautliner: { label: 'Tautliner', note: '' },
+    chilled: { label: 'Chilled', note: '0…+1 °C' },
+    frozen: { label: 'Frozen', note: '−18 °C' },
   },
-  summary: 'Підсумки',
-  byClient: 'По клієнтах',
+
+  clients: 'Клієнти', clientsSub: 'номер = порядок вивантаження',
+  clientN: n => `Клієнт ${n}`,
+  clientPh: 'назва клієнта',
+  fAddress: 'Адреса доставки', fDelivery: 'Дата і час доставки', deliveryPh: 'напр. 23.06, з 06:00 до 16:00',
+  addClient: '+ Додати клієнта', addItem: '+ Товар',
+  thItemProduct: 'Товар', thItemQty: 'Кількість', thItemUnit: 'Одиниця', thItemRes: 'Розрахунок',
+  chooseProduct: '— оберіть товар —',
+  units: { kg: 'кг', pallets: 'палет (повних)', fill: 'заповнити фуру' },
+  itemsCount: n => `${n} ${plural(n, ['товар', 'товари', 'товарів'])}`,
+  actualKg: kg => `фактично ${kg} кг`,
+  palShort: 'пал.',
+
+  summary: 'Підсумок рейсу',
   noClient: 'Без клієнта',
-  prodLine: (kg, pal) => `<b class="num">${kg}</b> кг <span class="num">· ${pal} пал.</span>`,
-  clientLine: (pal, kg) => `<b class="num">${pal}</b> ${plural(pal, ['палета','палети','палет'])} · <b class="num">${kg}</b> кг`,
-  totBoxes: 'Всього коробок', totKg: 'Всього кг', totPallets: 'Всього палет',
-  ofLimit: l => `з ${l}`,
-  free: (kg, slots) => `Вільно: <b class="num">${kg} кг</b> і <b class="num">${slots}</b> ${plural(slots, ['місце','місця','місць'])}.`,
-  limitWeight: 'Обмежує вага — вільних кг не вистачить на повні палети в усіх вільних місцях.',
-  limitSpace: 'Обмежує місце — вільних кг вистачає на повні палети в усіх вільних місцях.',
+  totKg: 'Вага, кг', totPallets: 'Палет',
+  statusOk: (kg, slots) => `✓ Усе влазить. Вільно ${kg} кг і ${slots} ${plural(slots, ['місце', 'місця', 'місць'])}.`,
+  statusBad: '✕ Не влазить — див. перевірки',
+  statusEmpty: 'Додайте клієнтів і товари',
+  limitWeight: 'Далі обмежує вага: вільних кг не вистачить на повні палети в усіх вільних місцях.',
+  limitSpace: 'Далі обмежує місце: вільних кг вистачає на повні палети в усіх вільних місцях.',
   truckFullSlots: 'Усі місця у фурі зайняті.',
   truckFullKg: 'Ліміт ваги фури вичерпано.',
+  free: (kg, slots) => `Вільно: ${kg} кг і ${slots} ${plural(slots, ['місце', 'місця', 'місць'])}.`,
   checks: 'Перевірки',
   allOk: 'Все в межах лімітів.',
-  pallets: 'Палети',
-  noPallets: 'Палет поки немає — додайте позицію.',
-  thN: '№', thClient: 'Клієнт', thProduct: 'Товар', thBoxes: 'Коробок', thKg: 'Вага, кг', thStatus: 'Палета',
+  pallets: n => `Палети (${n})`,
+  noPallets: 'Палет поки немає.',
+  thN: '№', thClient: 'Клієнт', thProduct: 'Товар', thKg: 'Вага, кг', thStatus: 'Палета',
   full: 'повна', partial: 'неповна', overweight: 'перевищення',
   overTruckKg: 'понад ліміт ваги фури', overSlots: 'не влазить у фуру',
   trailer: 'Причіп (вигляд збоку)',
   barKg: 'Вага продукту', barSlots: 'Місця',
   trOverKg: over => `Перевантаження фури: +${over} кг`,
-  trOutside: n => `Не влазить: ${n} ${plural(n, ['палета','палети','палет'])}`,
+  trOutside: n => `Не влазить: ${n} ${plural(n, ['палета', 'палети', 'палет'])}`,
   trMore: n => `ще +${n}`,
   trFront: 'перед', trRear: 'зад',
   lgPartial: 'пунктирна рамка — неповна палета', lgOver: 'палета понад свій ліміт ваги або поза фурою',
   lgOverKg: 'понад ліміт ваги фури', lgFree: 'вільне місце',
-  boxesShort: 'кор.',
+
+  to: {
+    sub: 'заповнюється автоматично: палети й вага — з розрахунку',
+    copy: 'Копіювати Transport Order',
+    copied: 'Скопійовано — вставте в Excel або лист',
+    copyFail: 'Не вдалося скопіювати. Виділіть таблицю вручну',
+    rows: ['Customer:', 'Loading address:', 'Loading date and time:', 'Delivery address:', 'Delivery date and time:',
+      'Number of pallets:', 'Weight:', 'Temperature regime (Tautliner / Chilled / Frozen):', 'Order number:',
+      'Paying company (Company responsible for transport costs):', 'Contact person in customer warehouse:', 'Special requirements:'],
+    pal: 'pal.', kg: 'kg',
+  },
+
   pdf: {
     btn: 'Завантажити PDF',
     preparing: 'Готую PDF…',
@@ -245,11 +330,9 @@ const T = {
     declined: 'Збереження скасовано',
     busy: 'Вікно збереження вже відкрите',
     failed: 'Не вдалося створити PDF. Спробуйте ще раз',
-    noAccess: 'Збереження файлів недоступне з вашим рівнем доступу до сторінки. Попросіть у власника доступ «Commenter».',
+    noAccess: 'Збереження файлів тут недоступне.',
     title: 'Розрахунок завантаження фури',
-    positions: 'Позиції',
-    thMode: 'Як задано', thPallets: 'Палет', thBpp: 'Кор. на палеті',
-    palletsShort: (full, rem) => rem ? `${full} повн. + 1 неповн.` : `${full} повн.`,
+    items: 'Товари по клієнтах',
     filename: d => `rozrakhunok-fury_${d}.pdf`,
   },
   err: {
@@ -260,20 +343,23 @@ const T = {
     noName: 'Вкажіть назву товару',
     setting: label => `«${label}» — має бути числом більше 0. Поки використовується значення за замовчуванням.`,
     noProduct: 'Не обрано товар',
-    noClient: 'Не вказано клієнта',
+    noClient: 'не вказано назву клієнта',
     badProduct: name => `Товар «${name}» має помилку в довіднику`,
     badValue: 'Кількість має бути числом більше 0',
     notInt: what => `${what} — має бути цілим числом`,
-    bppBad: 'Коробок на палеті — ціле число більше 0',
-    palletOver: (kg, over, max) => `Палета ${kg} кг — перевищення на ${over} кг. Максимум ${max} ${plural(max, ['коробка','коробки','коробок'])}`,
-    spaceOver: (n, max) => `На палеті ${n} кор., а за місцем вміщується максимум ${max}`,
+    bppBad: 'Некоректна кількість на палеті',
+    palletOver: (kg, over, maxKg) => `Палета ${kg} кг — перевищення на ${over} кг. Максимум ${maxKg} кг`,
+    spaceOver: (n, max) => `Перевищено місткість палети (${n} при максимумі ${max})`,
     truckOver: (kg, over, tail) => `Фура ${kg} кг — перевищення на ${over} кг. ${tail}`,
-    truckOverTail: (p, name, b) => `Приберіть ${p} ${plural(p, ['палету','палети','палет'])} «${name}» або ${b} ${plural(b, ['коробку','коробки','коробок'])}`,
+    truckOverTail: (p, name, kg) => `Приберіть ${p} ${plural(p, ['палету', 'палети', 'палет'])} «${name}» (${kg} кг)`,
     truckOverTailKg: over => `Приберіть ${over} кг`,
-    slotsOver: (n, max, d) => `Палет ${n} при максимумі ${max} — приберіть ${d} ${plural(d, ['палету','палети','палет'])}`,
-    fillNoRoom: 'Для «Заповнити фуру» не залишилось вільних кг або місць',
+    slotsOver: (n, max, d) => `Палет ${n} при максимумі ${max} — приберіть ${d} ${plural(d, ['палету', 'палети', 'палет'])}`,
+    fillNoRoom: 'Для «заповнити фуру» не залишилось вільних кг або місць',
   },
+  // для сумісності з розрахунком
+  valueLabel: { boxes: 'Коробок', kg: 'Кілограмів', pallets: 'Палет' },
 };
+
 
 /* =========================================================
    Утиліти
@@ -308,6 +394,7 @@ const COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0891b2', '#ca8a04'
 const LS_KEY = 'pallet-calc-v1';
 const DEFAULTS = { truckLimit: '19880', truckSlots: '33' };
 const DEFAULT_PALLET_LIMIT = '800';
+const emptyTrip = () => ({ loadAddress: '', loadDate: '', loadTime: '', temp: '', orderNo: '', payer: '', contact: '', special: '' });
 
 function defaultState() {
   return {
@@ -317,23 +404,42 @@ function defaultState() {
       { id: 2, name: 'Товар Б', boxWeight: '15,5', maxBySpace: '', palletLimit: DEFAULT_PALLET_LIMIT, color: COLORS[1] },
       { id: 3, name: 'Товар В', boxWeight: '8', maxBySpace: '80', palletLimit: DEFAULT_PALLET_LIMIT, color: COLORS[2] },
     ],
-    positions: [{ id: 4, productId: 1, mode: 'kg', value: '', bpp: '' }],
-    nextId: 5,
+    trip: emptyTrip(),
+    clients: [{ id: 4, name: '', address: '', delivery: '', collapsed: false, items: [{ id: 5, productId: 1, mode: 'kg', value: '' }] }],
+    nextId: 6,
     colorIdx: 3,
   };
 }
+
+/** Старий формат (позиції з полем «клієнт») → картки клієнтів. */
+function migratePositions(s) {
+  const byName = new Map();
+  let nextId = s.nextId || 1000;
+  (s.positions || []).forEach(p => {
+    const nm = String(p.client || '').trim();
+    if (!byName.has(nm)) byName.set(nm, { id: nextId++, name: nm, address: '', delivery: '', collapsed: false, items: [] });
+    const mode = p.mode === 'boxes' ? 'kg' : (p.mode || 'kg');
+    byName.get(nm).items.push({ id: p.id, productId: p.productId, mode, value: p.mode === 'boxes' ? '' : (p.value || '') });
+  });
+  s.clients = [...byName.values()];
+  if (!s.clients.length) s.clients = [{ id: nextId++, name: '', address: '', delivery: '', collapsed: false, items: [{ id: nextId++, productId: s.products[0] ? s.products[0].id : null, mode: 'kg', value: '' }] }];
+  s.nextId = nextId;
+  delete s.positions;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (s && Array.isArray(s.products) && Array.isArray(s.positions) && s.settings) {
+      if (s && Array.isArray(s.products) && s.settings) {
         // міграція: раніше ліміт палети був спільний у налаштуваннях
         const old = s.settings.palletLimit;
         s.products.forEach(p => { if (p.palletLimit === undefined) p.palletLimit = old || DEFAULT_PALLET_LIMIT; });
         delete s.settings.palletLimit;
-        // старе значення за замовчуванням 19 025 → нове 19 880 (якщо користувач його не змінював)
         if (String(s.settings.truckLimit).replace(/\s/g, '') === '19025') s.settings.truckLimit = DEFAULTS.truckLimit;
+        if (!Array.isArray(s.clients)) migratePositions(s);
+        s.trip = { ...emptyTrip(), ...(s.trip || {}) };
         return s;
       }
     }
@@ -345,6 +451,16 @@ function save() {
 }
 let state = load();
 const newId = () => state.nextId++;
+
+/** Позиції для розрахунку: товари всіх клієнтів по порядку. */
+function derived() {
+  const positions = state.clients.flatMap(c => c.items.map(it => ({
+    id: it.id, clientId: c.id, client: c.name, productId: it.productId, mode: it.mode, value: it.value,
+  })));
+  return { ...state, positions };
+}
+const calc = () => compute(derived());
+
 
 /* =========================================================
    ЛОГІКА РОЗРАХУНКУ (чиста функція: стан → результат)
@@ -469,24 +585,28 @@ function compute(st) {
     const pi = info[r.product.id];
     const heaviest = r.full > 0 ? r.palletKg : r.remKg;
     if (heaviest > r.limit + EPS) {
-      r.errors.push(T.err.palletOver(fmt(heaviest), fmt(heaviest - r.limit), pi.max));
+      r.errors.push(T.err.palletOver(fmt(heaviest), fmt(heaviest - r.limit), fmt(pi.max * pi.bw)));
     } else if (r.bppOverride && pi.spaceN && r.bpp > pi.spaceN) {
       r.errors.push(T.err.spaceOver(r.bpp, pi.spaceN));
     }
   }
 
-  // --- клієнти: колір за порядком першої появи; без клієнта — колір товару
-  const clients = new Map(); // ключ (нижній регістр) → {name, color, pallets, kg}
-  results.forEach(r => {
-    if (!r.client) return;
-    const key = r.client.toLowerCase();
-    if (!clients.has(key)) clients.set(key, { name: r.client, color: COLORS[clients.size % COLORS.length], pallets: 0, kg: 0, products: new Map() });
+  // --- клієнти: картки по порядку (номер = порядок вивантаження), колір за номером
+  const clients = new Map();
+  (st.clients || []).forEach((c, i) => {
+    const nm = String(c.name || '').trim();
+    clients.set(c.id, { id: c.id, idx: i + 1, name: nm || T.clientN(i + 1), named: !!nm,
+      address: String(c.address || '').trim(), delivery: String(c.delivery || '').trim(),
+      color: COLORS[i % COLORS.length], pallets: 0, kg: 0, products: new Map() });
   });
   results.forEach(r => {
-    r.clientInfo = r.client ? clients.get(r.client.toLowerCase()) : null;
+    r.clientInfo = clients.get(r.pos.clientId) || null;
     r.color = r.clientInfo ? r.clientInfo.color : NO_CLIENT_COLOR;
+    r.client = r.clientInfo ? r.clientInfo.name : '';
     r.label = r.client || (r.product ? r.product.name : '');
-    if (r.active && !r.client) r.warnings.push(T.err.noClient);
+  });
+  clients.forEach(c => {
+    if (!c.named && results.some(r => r.active && r.clientInfo === c)) messages.push({ level: 'warn', text: `${c.name}: ${T.err.noClient}` });
   });
 
   // --- список палет
@@ -515,7 +635,7 @@ function compute(st) {
     const x = c.products.get(pr.id);
     x.pallets++; x.kg = round2(x.kg + p.kg);
   });
-  const clientSum = [...clients.values()].filter(c => c.pallets);
+  const clientSum = [...clients.values()];
   if (noClient.pallets) clientSum.push(noClient);
 
   const tot = {
@@ -533,11 +653,10 @@ function compute(st) {
     const last = [...results].reverse().find(r => r.active);
     let tail = T.err.truckOverTailKg(fmt(over));
     if (last && last.kg >= over - EPS) {
-      const b = Math.ceil(over / last.bw - EPS);
       let removed = 0, p = 0;
       if (last.rem) { removed += last.remKg; p++; }
       while (removed < over - EPS && p < last.pallets) { removed += last.palletKg; p++; }
-      tail = T.err.truckOverTail(p, last.product.name, b);
+      tail = T.err.truckOverTail(p, `${last.client} · ${last.product.name}`, fmt(removed));
     }
     messages.push({ level: 'err', text: T.err.truckOver(fmt(tot.kg), fmt(over), tail) });
   }
@@ -548,7 +667,7 @@ function compute(st) {
   // повідомлення довідника і позицій — у загальний список
   st.products.forEach(p => info[p.id].errors.forEach(e => messages.push({ level: 'err', text: `«${p.name || '?'}»: ${e}` })));
   results.forEach(r => {
-    const who = T.posN(r.n) + (r.product ? ` («${r.product.name}»)` : '');
+    const who = `«${r.client || T.noClient}»` + (r.product ? ` · ${r.product.name}` : '');
     r.errors.forEach(e => messages.push({ level: 'err', text: `${who}: ${e}` }));
     r.warnings.forEach(e => messages.push({ level: 'warn', text: `${who}: ${e}` }));
   });
@@ -571,23 +690,16 @@ function compute(st) {
 const $ = id => document.getElementById(id);
 
 function renderStatic() {
-  $('t-title').textContent = T.title;
-  document.title = T.title;
-  $('btn-settings').textContent = T.settingsBtn;
-  $('btn-pdf').textContent = T.pdf.btn;
-  $('btn-clear').textContent = T.clearBtn;
-  $('t-clear-q').textContent = T.clearQ;
-  $('btn-clear-yes').textContent = T.yes;
-  $('btn-clear-no').textContent = T.no;
-  $('t-settings').textContent = T.settings;
-  $('t-products').textContent = T.products;
-  $('btn-add-product').textContent = T.addProduct;
-  $('t-positions').textContent = T.positions;
-  $('btn-add-position').textContent = T.addPosition;
-  $('t-summary').textContent = T.summary;
-  $('t-checks').textContent = T.checks;
-  $('t-trailer').textContent = T.trailer;
-  $('t-pallets').textContent = T.pallets;
+  const txt = (id, t) => { $(id).textContent = t; };
+  txt('t-title', T.title); document.title = T.title;
+  txt('btn-pdf', T.pdf.btn); txt('btn-copy-to-top', T.to.copy); txt('btn-copy-to', T.to.copy);
+  txt('btn-catalog', T.catalogBtn); txt('btn-settings', T.settingsBtn); txt('btn-clear', T.clearBtn);
+  txt('t-clear-q', T.clearQ); txt('btn-clear-yes', T.yes); txt('btn-clear-no', T.no);
+  txt('t-settings', T.settings); txt('t-products', T.products); txt('t-products-sub', T.productsSub);
+  txt('btn-add-product', T.addProduct);
+  txt('t-trip', T.trip); txt('t-trip-sub', T.tripSub);
+  txt('t-clients', T.clients); txt('t-clients-sub', T.clientsSub); txt('btn-add-client', T.addClient);
+  txt('t-summary', T.summary); txt('t-checks', T.checks); txt('t-trailer', T.trailer); txt('t-to-sub', T.to.sub);
 }
 
 function renderSettings() {
@@ -601,80 +713,128 @@ function renderProducts() {
     <div class="prod-row" data-pid="${p.id}">
       <span class="dot" style="background:${p.color}"></span>
       <label class="fld f-name">${T.pName}<input data-pf="name" value="${esc(p.name)}"></label>
-      <label class="fld f-weight">${T.pWeight}<input inputmode="decimal" data-pf="boxWeight" value="${esc(p.boxWeight)}"></label>
-      <label class="fld f-plimit">${T.pLimit}<input inputmode="decimal" data-pf="palletLimit" value="${esc(p.palletLimit)}"></label>
-      <label class="fld f-space">${T.pSpace}<input inputmode="numeric" data-pf="maxBySpace" placeholder="${T.pSpaceHint}" value="${esc(p.maxBySpace)}"></label>
+      <label class="fld">${T.pWeight}<input inputmode="decimal" data-pf="boxWeight" value="${esc(p.boxWeight)}"></label>
+      <label class="fld">${T.pLimit}<input inputmode="decimal" data-pf="palletLimit" value="${esc(p.palletLimit)}"></label>
+      <label class="fld">${T.pSpace}<input inputmode="numeric" data-pf="maxBySpace" placeholder="${T.pSpaceHint}" value="${esc(p.maxBySpace)}"></label>
       <div class="prod-max" id="pmax-${p.id}"></div>
-      <button class="ghost" data-del-product="${p.id}" title="Видалити товар">✕</button>
+      <button class="icon" data-del-product="${p.id}" aria-label="Видалити товар" title="Видалити товар">✕</button>
       <div class="prod-err" id="perr-${p.id}"></div>
     </div>`).join('');
 }
 
-function renderPositions() {
-  const opts = sel => `<option value="">${T.chooseProduct}</option>` +
-    state.products.map(p => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
-  const modes = m => Object.entries(T.modes).map(([k, v]) => `<option value="${k}" ${k === m ? 'selected' : ''}>${v}</option>`).join('');
-  $('positions').innerHTML = state.positions.map((pos, i) => `
-    <div class="pos" data-posid="${pos.id}" id="pos-${pos.id}">
-      <div class="pos-head"><span>${T.posN(i + 1)}</span>
-        <button class="ghost" data-del-pos="${pos.id}" title="Видалити позицію">✕</button></div>
-      <div class="pos-grid">
-        <label class="fld">${T.fClient}<input list="clients-list" data-posf="client" placeholder="${T.clientPh}" value="${esc(pos.client || '')}"></label>
-        <label class="fld">${T.fProduct}<select data-posf="productId">${opts(pos.productId)}</select></label>
-        <label class="fld">${T.fMode}<select data-posf="mode">${modes(pos.mode)}</select></label>
-        ${pos.mode === 'fill'
-          ? `<div></div>`
-          : `<label class="fld">${T.valueLabel[pos.mode]}<input inputmode="decimal" data-posf="value" value="${esc(pos.value)}"></label>`}
+function renderTrip() {
+  const t = state.trip;
+  const inp = (k, label, extra = '') => `<label class="fld">${label}<input data-trip="${k}" value="${esc(t[k])}" ${extra}></label>`;
+  const temps = Object.entries(T.temps).map(([k, v]) =>
+    `<button type="button" data-temp="${k}" class="${t.temp === k ? 'on' : ''}" aria-pressed="${t.temp === k}">${v.label}${v.note ? `<small>${v.note}</small>` : ''}</button>`).join('');
+  $('trip').innerHTML =
+    inp('loadAddress', T.fLoadAddress) +
+    `<div class="fld">${T.fLoadDT}<div class="dt">
+       <input type="date" data-trip="loadDate" value="${esc(t.loadDate)}" aria-label="Дата завантаження">
+       <input type="time" data-trip="loadTime" value="${esc(t.loadTime)}" aria-label="Час завантаження"></div></div>` +
+    `<div class="fld">${T.fTemp}<div class="seg">${temps}</div></div>` +
+    inp('orderNo', T.fOrderNo) + inp('payer', T.fPayer) + inp('contact', T.fContact) +
+    `<label class="fld wide">${T.fSpecial}<textarea rows="2" data-trip="special">${esc(t.special)}</textarea></label>`;
+}
+
+function productOptions(sel) {
+  return `<option value="">${T.chooseProduct}</option>` + state.products.map(p =>
+    `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)} (${esc(p.palletLimit)} кг)</option>`).join('');
+}
+
+function renderClients() {
+  $('clients').innerHTML = state.clients.map((c, i) => {
+    const color = COLORS[i % COLORS.length];
+    const units = m => Object.entries(T.units).map(([k, v]) => `<option value="${k}" ${k === m ? 'selected' : ''}>${v}</option>`).join('');
+    const items = c.items.map(it => `
+      <div class="item" data-iid="${it.id}">
+        <select class="i-prod" data-if="productId" aria-label="${T.thItemProduct}">${productOptions(it.productId)}</select>
+        ${it.mode === 'fill' ? '<span></span>' : `<input inputmode="decimal" data-if="value" value="${esc(it.value)}" aria-label="${T.thItemQty}">`}
+        <select data-if="mode" aria-label="${T.thItemUnit}">${units(it.mode)}</select>
+        <span class="ires i-res" id="ires-${it.id}"></span>
+        <button class="icon" data-del-item="${it.id}" aria-label="Видалити товар" title="Видалити товар">✕</button>
+      </div>`).join('');
+    return `
+    <article class="client ${c.collapsed ? 'collapsed' : ''}" data-cid="${c.id}">
+      <div class="client-head" style="background:${tone(color, 0.9)}">
+        <span class="badge" style="background:${color}">${i + 1}</span>
+        ${c.collapsed
+          ? `<span class="sumline" data-toggle="${c.id}" id="csum-${c.id}"></span>`
+          : `<input class="name" data-cf="name" value="${esc(c.name)}" placeholder="${T.clientPh}" aria-label="${T.clientN(i + 1)}">`}
+        <span class="tot" id="ctot-${c.id}"></span>
+        <button class="icon tog" data-toggle="${c.id}" aria-label="${c.collapsed ? 'Розгорнути' : 'Згорнути'}" title="${c.collapsed ? 'Розгорнути' : 'Згорнути'}">${c.collapsed ? '▾' : '▴'}</button>
+        <button class="icon" data-del-client="${c.id}" aria-label="Видалити клієнта" title="Видалити клієнта">✕</button>
       </div>
-      ${pos.mode === 'fill' ? `<div class="pos-note">${T.fillNote}</div>` : ''}
-      <div class="pos-res" id="pres-${pos.id}"></div>
-    </div>`).join('') + '<datalist id="clients-list"></datalist>';
+      <div class="client-body">
+        <div class="addr-grid">
+          <label class="fld">${T.fAddress}<input data-cf="address" value="${esc(c.address)}"></label>
+          <label class="fld">${T.fDelivery}<input data-cf="delivery" value="${esc(c.delivery)}" placeholder="${T.deliveryPh}"></label>
+        </div>
+        <div class="items">
+          <div class="item hd"><span>${T.thItemProduct}</span><span>${T.thItemQty}</span><span>${T.thItemUnit}</span><span>${T.thItemRes}</span><span></span></div>
+          ${items}
+        </div>
+        <button class="add" data-add-item="${c.id}" style="align-self:flex-start">${T.addItem}</button>
+      </div>
+    </article>`;
+  }).join('');
 }
 
 function update() {
-  const R = compute(state);
+  const R = calc();
+  const byPos = new Map(R.results.map(r => [r.id, r]));
 
   // довідник
   state.products.forEach(p => {
     const pi = R.info[p.id];
-    $('pmax-' + p.id).innerHTML = pi.max ? T.pMax(pi.max, fmt(pi.max * pi.bw), pi.by) : '';
+    const el = $('pmax-' + p.id); if (!el) return;
+    el.innerHTML = pi.max ? T.pMax(fmt(pi.max * pi.bw), pi.by) : '';
     $('perr-' + p.id).textContent = pi.errors.join(' · ');
   });
 
-  // позиції
-  R.results.forEach(r => {
-    const card = $('pos-' + r.id);
-    card.style.borderLeftColor = r.color;
-    // назви товарів у списках могли змінитися
-    card.querySelectorAll('select[data-posf="productId"] option').forEach(o => {
-      const p = state.products.find(x => String(x.id) === o.value);
-      if (p) o.textContent = p.name || '?';
-    });
-
-    let html = '';
-    if (r.empty) html = `<span class="muted">${T.enterValue}</span>`;
-    else if (r.active || (r.pos.mode === 'fill' && r.product && !r.errors.length)) {
-      html = `<b class="num">${fmt(r.boxes)}</b> ${plural(r.boxes, ['коробка', 'коробки', 'коробок'])} · ` +
-        `<b class="num">${fmt(r.kg)}</b> кг · <b class="num">${r.pallets}</b> ${plural(r.pallets, ['палета', 'палети', 'палет'])}`;
-      const det = T.palletsDetail(r.full, r.bpp, r.rem, fmt(r.remKg));
-      if (det) html += `<div class="detail">${det}</div>`;
-      if (r.kgRequested !== null) html += `<div class="detail">${T.fromKg(fmt(r.kgRequested), fmt(r.kg))}</div>`;
+  // клієнти
+  state.clients.forEach(c => {
+    const ci = R.clientSum.find(x => x.id === c.id);
+    $('ctot-' + c.id).innerHTML = ci && ci.pallets ? `<b class="num">${ci.pallets}</b> ${T.palShort} · <b class="num">${fmt(ci.kg)}</b> кг` : '';
+    const sum = $('csum-' + c.id);
+    if (sum) {
+      const bits = [c.address, c.delivery, T.itemsCount(c.items.length)].map(x => String(x || '').trim()).filter(Boolean);
+      sum.innerHTML = `${esc(ci ? ci.name : '')} <span>· ${esc(bits.join(' · '))}</span>`;
     }
-    $('pres-' + r.id).innerHTML = html;
+    c.items.forEach(it => {
+      const r = byPos.get(it.id), el = $('ires-' + it.id);
+      if (!r || !el) return;
+      el.closest('.item').querySelectorAll('select[data-if="productId"] option').forEach(o => {
+        const p = state.products.find(x => String(x.id) === o.value);
+        if (p) o.textContent = `${p.name || '?'} (${p.palletLimit} кг)`;
+      });
+      let html = '';
+      if (r.errors.length) html = `<span class="err">${esc(r.errors[0])}</span>`;
+      else if (r.empty) html = '<span class="muted">—</span>';
+      else if (r.active) {
+        html = `<b class="num">${r.pallets}</b> ${T.palShort}`;
+        if (r.pos.mode !== 'kg') html += ` · <b class="num">${fmt(r.kg)}</b> кг`;
+        else if (Math.abs(r.kg - r.kgRequested) > 0.005) html += ` <span class="muted">· ${T.actualKg(fmt(r.kg))}</span>`;
+      } else if (r.warnings.length) html = `<span class="warn">${esc(r.warnings[0])}</span>`;
+      el.innerHTML = html;
+    });
   });
 
-  // підсумки
+  // підсумок
+  const overKg = R.tot.kg > R.S.truckLimit + EPS, overSl = R.tot.pallets > R.S.truckSlots;
   $('summary').innerHTML = `
-    <div class="card"><div class="lbl">${T.totBoxes}</div><div class="val num">${fmt(R.tot.boxes)}</div></div>
-    <div class="card"><div class="lbl">${T.totKg}</div><div class="val num">${fmt(R.tot.kg)}</div><div class="sub">${T.ofLimit(fmt(R.S.truckLimit))} кг</div></div>
-    <div class="card"><div class="lbl">${T.totPallets}</div><div class="val num">${R.tot.pallets}</div><div class="sub">${T.ofLimit(R.S.truckSlots)}</div></div>`;
-  const names = [...new Set(state.positions.map(x => String(x.client || '').trim()).filter(Boolean))];
-  $('clients-list').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
-  $('clients-sum').innerHTML = R.clientSum.length ? `<h3>${T.byClient}</h3><table class="ctab">` + R.clientSum.map(c =>
-    `<tbody><tr class="c"><td><span class="dot" style="background:${c.color}"></span> ${esc(c.name)}</td><td class="r">${fmt(c.kg)} <span class="u">кг</span></td><td class="r">${c.pallets} <span class="u">пал.</span></td></tr>` +
-    [...c.products.values()].map(x => `<tr class="p"><td>${esc(x.name)}</td><td class="r">${fmt(x.kg)} <span class="u">кг</span></td><td class="r">${x.pallets} <span class="u">пал.</span></td></tr>`).join('') + '</tbody>'
+    <div class="card ${overSl ? 'over' : ''}"><div class="lbl">${T.totPallets}</div><div class="val num">${R.tot.pallets}</div><div class="sub">з ${R.S.truckSlots}</div></div>
+    <div class="card ${overKg ? 'over' : ''}"><div class="lbl">${T.totKg}</div><div class="val num">${fmt(R.tot.kg)}</div><div class="sub">з ${fmt(R.S.truckLimit)}</div></div>`;
+  const anyPalletOver = R.pallets.some(p => p.over);
+  const bad = overKg || overSl || anyPalletOver;
+  $('status').innerHTML = !R.pallets.length ? `<div class="status ok" style="background:#f3f5f8;color:var(--muted)">${T.statusEmpty}</div>`
+    : bad ? `<div class="status bad">${T.statusBad}</div>` : `<div class="status ok">${T.statusOk(fmt(R.freeKg), R.freeSlots)}</div>`;
+  $('free').textContent = R.pallets.length && !bad ? R.limiter : '';
+  const shown = R.clientSum.filter(c => c.pallets);
+  $('clients-sum').innerHTML = shown.length ? `<table class="ctab">` + shown.map(c =>
+    `<tbody><tr class="c"><td><span class="dot" style="background:${c.color}"></span> ${c.idx}. ${esc(c.name)}</td><td class="r">${fmt(c.kg)} <span class="u">кг</span></td><td class="r">${c.pallets} <span class="u">${T.palShort}</span></td></tr>` +
+    [...c.products.values()].map(x => `<tr class="p"><td>${esc(x.name)}</td><td class="r">${fmt(x.kg)} <span class="u">кг</span></td><td class="r">${x.pallets} <span class="u">${T.palShort}</span></td></tr>`).join('') + '</tbody>'
   ).join('') + '</table>' : '';
-  $('free').innerHTML = (R.freeKg >= 0 && R.freeSlots >= 0 ? T.free(fmt(R.freeKg), R.freeSlots) + ' ' : '') + R.limiter;
 
   // перевірки
   $('checks-body').innerHTML = R.messages.length
@@ -682,21 +842,83 @@ function update() {
     : `<span class="ok">✓ ${T.allOk}</span>`;
 
   // палети
+  $('t-pallets').textContent = T.pallets(R.pallets.length);
   $('pallets').innerHTML = R.pallets.length ? `
-    <table><thead><tr><th>${T.thN}</th><th>${T.thClient}</th><th>${T.thProduct}</th><th class="r">${T.thBoxes}</th><th class="r">${T.thKg}</th><th>${T.thStatus}</th></tr></thead>
+    <table class="list"><thead><tr><th>${T.thN}</th><th>${T.thClient}</th><th>${T.thProduct}</th><th class="r">${T.thKg}</th><th>${T.thStatus}</th></tr></thead>
     <tbody>${R.pallets.map(p => `<tr>
       <td class="num">${p.n}</td>
       <td><span class="dot" style="background:${p.r.color}"></span> ${esc(p.r.client || '—')}</td>
       <td>${esc(p.r.product.name)}</td>
-      <td class="r num">${p.boxes}</td>
       <td class="r num">${fmt(p.kg)}</td>
       <td>${p.partial ? T.partial : T.full}${p.over ? ` · ${T.overweight}` : ''}${p.overSlots ? ` · ${T.overSlots}` : p.overTruck ? ` · ${T.overTruckKg}` : ''}</td>
     </tr>`).join('')}</tbody></table>`
     : `<span class="muted">${T.noPallets}</span>`;
 
   renderTrailer(R);
+  renderTO(R);
   save();
 }
+
+/* =========================================================
+   TRANSPORT ORDER
+   ========================================================= */
+const plainNum = n => String(round2(n)).replace('.', ',');
+function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : '';
+}
+/** Рядки Transport Order: [назва, значення, автоматичне?] */
+function buildTO(R) {
+  const t = state.trip;
+  const cl = R.clientSum;
+  const list = f => cl.map(c => `${c.idx}) ${f(c)}`).join('   ');
+  const temp = T.temps[t.temp];
+  const dt = [fmtDate(t.loadDate), t.loadTime].filter(Boolean).join(', ');
+  const r = T.to.rows;
+  return [
+    [r[0], list(c => c.named ? c.name : '')],
+    [r[1], t.loadAddress],
+    [r[2], dt],
+    [r[3], list(c => c.address)],
+    [r[4], list(c => c.delivery)],
+    [r[5], list(c => `${c.pallets} ${T.to.pal}`), true],
+    [r[6], list(c => `${plainNum(c.kg)} ${T.to.kg}`), true],
+    [r[7], temp ? (temp.note ? `${temp.label} (${temp.note})` : temp.label) : ''],
+    [r[8], t.orderNo],
+    [r[9], t.payer],
+    [r[10], t.contact],
+    [r[11], t.special],
+  ].map(([a, b, auto]) => [a, String(b || '').trim(), !!auto]);
+}
+function renderTO(R) {
+  const rows = buildTO(R);
+  $('to').innerHTML = `<table class="to"><thead><tr><th colspan="2">TRANSPORT ORDER</th></tr></thead><tbody>` +
+    rows.map(([a, b, auto]) => `<tr><td>${esc(a)}</td><td class="${auto ? 'auto' : ''}" style="white-space:pre-wrap">${esc(b)}</td></tr>`).join('') +
+    `</tbody></table>`;
+}
+async function copyTO(statusId = 'to-status') {
+  const rows = buildTO(calc());
+  const clean = s => s.replace(/[\t\r\n]+/g, ' ');
+  const text = 'TRANSPORT ORDER\n' + rows.map(([a, b]) => `${clean(a)}\t${clean(b)}`).join('\n');
+  const html = `<table border="1" style="border-collapse:collapse"><tr><th colspan="2">TRANSPORT ORDER</th></tr>` +
+    rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('') + `</table>`;
+  const st = $(statusId);
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      })]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    st.textContent = T.to.copied; st.classList.remove('err');
+  } catch (e) {
+    st.textContent = T.to.copyFail; st.classList.add('err');
+  }
+  setTimeout(() => { st.textContent = ''; }, 5000);
+}
+
 
 /* =========================================================
    ВІЗУАЛІЗАЦІЯ ПРИЧЕПА (косокутна проєкція, вигляд збоку)
@@ -793,7 +1015,7 @@ function renderTrailer(R) {
     const red = p.over || p.overSlots;
     const hex = red ? '#dc2626' : p.r.color;
     const w = 0;
-    let g = `<g><title>№${p.n} · ${esc(p.r.client || T.noClient)} · ${esc(p.r.product.name)}\n${p.boxes} ${T.boxesShort} · ${fmt(p.kg)} кг · ${p.partial ? T.partial : T.full}` +
+    let g = `<g><title>№${p.n} · ${esc(p.r.client || T.noClient)} · ${esc(p.r.product.name)}\n${fmt(p.kg)} кг · ${p.partial ? T.partial : T.full}` +
       `${p.over ? ' · ' + T.overweight : ''}${p.overSlots ? ' · ' + T.overSlots : p.overTruck ? ' · ' + T.overTruckKg : ''}</title>`;
     g += cube(x0, x1, yb, yb + hb, z0, z1, '#b07d4f', '#c99a6b', '#8a5e36');
     g += cube(x0, x1, yb + hb, yb + hb + h, z0, z1, tone(hex, w), tone(hex, w + (1 - w) * 0.3), tone(hex, w, 0.78));
@@ -907,69 +1129,102 @@ function renderTrailer(R) {
     `<span><i class="sw" style="background:#fff;border:1px dashed #aab1bc"></i>${T.lgFree}</span>`;
 }
 
-function renderAll() { renderSettings(); renderProducts(); renderPositions(); update(); }
+function renderAll() { renderSettings(); renderProducts(); renderTrip(); renderClients(); update(); }
 
 /* =========================================================
    ПОДІЇ
    ========================================================= */
 $('btn-settings').onclick = () => { const s = $('settings'); s.hidden = !s.hidden; };
+$('btn-catalog').onclick = () => { const s = $('catalog'); s.hidden = !s.hidden; };
 $('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
 const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
 $('btn-clear-no').onclick = hideConfirm;
 $('btn-clear-yes').onclick = () => {
+  // новий рейс: адреса завантаження, платник і режим лишаються
+  const t = state.trip;
+  state.trip = { ...emptyTrip(), loadAddress: t.loadAddress, payer: t.payer, temp: t.temp };
   const first = state.products[0];
-  state.positions = [{ id: newId(), productId: first ? first.id : null, mode: 'kg', value: '', bpp: '' }];
-  hideConfirm(); renderPositions(); update();
+  state.clients = [{ id: newId(), name: '', address: '', delivery: '', collapsed: false, items: [{ id: newId(), productId: first ? first.id : null, mode: 'kg', value: '' }] }];
+  hideConfirm(); renderTrip(); renderClients(); update();
 };
+$('btn-copy-to').onclick = () => copyTO('to-status');
+$('btn-copy-to-top').onclick = () => copyTO('pdf-status');
 
 $('settings-grid').addEventListener('input', e => {
   const k = e.target.dataset.setting; if (!k) return;
   state.settings[k] = e.target.value; update();
 });
 
+// довідник
 $('products').addEventListener('input', e => {
   const f = e.target.dataset.pf; if (!f) return;
   const id = +e.target.closest('[data-pid]').dataset.pid;
-  const p = state.products.find(x => x.id === id);
-  p[f] = e.target.value; update();
+  state.products.find(x => x.id === id)[f] = e.target.value; update();
 });
 $('products').addEventListener('click', e => {
-  const id = e.target.dataset.delProduct; if (!id) return;
-  state.products = state.products.filter(p => p.id !== +id);
-  state.positions.forEach(pos => { if (pos.productId === +id) pos.productId = null; });
-  renderProducts(); renderPositions(); update();
+  const b = e.target.closest('[data-del-product]'); if (!b) return;
+  const id = +b.dataset.delProduct;
+  state.products = state.products.filter(p => p.id !== id);
+  state.clients.forEach(c => c.items.forEach(it => { if (it.productId === id) it.productId = null; }));
+  renderProducts(); renderClients(); update();
 });
 $('btn-add-product').onclick = () => {
   const color = COLORS[state.colorIdx++ % COLORS.length];
   state.products.push({ id: newId(), name: T.defaultName(state.products.length + 1), boxWeight: '', maxBySpace: '', palletLimit: DEFAULT_PALLET_LIMIT, color });
-  renderProducts(); renderPositions(); update();
+  renderProducts(); renderClients(); update();
 };
 
-$('positions').addEventListener('input', e => {
-  const f = e.target.dataset.posf; if (!f || e.target.tagName === 'SELECT') return;
-  const id = +e.target.closest('[data-posid]').dataset.posid;
-  state.positions.find(x => x.id === id)[f] = e.target.value; update();
+// рейс
+$('trip').addEventListener('input', e => {
+  const k = e.target.dataset.trip; if (!k) return;
+  state.trip[k] = e.target.value; update();
 });
-$('positions').addEventListener('change', e => {
-  const f = e.target.dataset.posf; if (!f || e.target.tagName !== 'SELECT') return;
-  const id = +e.target.closest('[data-posid]').dataset.posid;
-  const pos = state.positions.find(x => x.id === id);
-  if (f === 'productId') pos.productId = e.target.value ? +e.target.value : null;
-  else { pos.mode = e.target.value; pos.value = ''; }
-  renderPositions(); update();
+$('trip').addEventListener('click', e => {
+  const b = e.target.closest('[data-temp]'); if (!b) return;
+  state.trip.temp = state.trip.temp === b.dataset.temp ? '' : b.dataset.temp;
+  renderTrip(); update();
 });
-$('positions').addEventListener('click', e => {
-  const id = e.target.dataset.delPos; if (!id) return;
-  state.positions = state.positions.filter(p => p.id !== +id);
-  renderPositions(); update();
+
+// клієнти
+const clientOf = el => state.clients.find(c => c.id === +el.closest('[data-cid]').dataset.cid);
+const itemOf = (c, el) => c.items.find(it => it.id === +el.closest('[data-iid]').dataset.iid);
+$('clients').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.cf) { clientOf(el)[el.dataset.cf] = el.value; update(); return; }
+  if (el.dataset.if === 'value') { itemOf(clientOf(el), el).value = el.value; update(); }
 });
-$('btn-add-position').onclick = () => {
-  const last = state.positions[state.positions.length - 1];
-  const used = new Set(state.positions.map(p => p.productId));
-  const next = state.products.find(p => !used.has(p.id)) || state.products[0];
-  state.positions.push({ id: newId(), client: last ? (last.client || '') : '', productId: next ? next.id : null, mode: 'kg', value: '', bpp: '' });
-  renderPositions(); update();
+$('clients').addEventListener('change', e => {
+  const el = e.target;
+  if (el.tagName !== 'SELECT' || !el.dataset.if) return;
+  const it = itemOf(clientOf(el), el);
+  if (el.dataset.if === 'productId') it.productId = el.value ? +el.value : null;
+  else { it.mode = el.value; if (it.mode === 'fill') it.value = ''; }
+  renderClients(); update();
+});
+$('clients').addEventListener('click', e => {
+  const b = e.target.closest('[data-toggle],[data-del-client],[data-del-item],[data-add-item]');
+  if (!b) return;
+  const c = clientOf(b);
+  if (b.dataset.toggle) c.collapsed = !c.collapsed;
+  else if (b.dataset.delClient) state.clients = state.clients.filter(x => x !== c);
+  else if (b.dataset.delItem) c.items = c.items.filter(it => it.id !== +b.dataset.delItem);
+  else if (b.dataset.addItem) {
+    const used = new Set(c.items.map(it => it.productId));
+    const next = state.products.find(p => !used.has(p.id)) || state.products[0];
+    c.items.push({ id: newId(), productId: next ? next.id : null, mode: 'kg', value: '' });
+  }
+  renderClients(); update();
+});
+$('btn-add-client').onclick = () => {
+  state.clients.forEach(c => { c.collapsed = true; });
+  const first = state.products[0];
+  state.clients.push({ id: newId(), name: '', address: '', delivery: '', collapsed: false, items: [{ id: newId(), productId: first ? first.id : null, mode: 'kg', value: '' }] });
+  renderClients(); update();
+  const last = state.clients[state.clients.length - 1];
+  const inp = document.querySelector(`[data-cid="${last.id}"] input.name`);
+  if (inp) inp.focus();
 };
+
 
 /* =========================================================
    ЕКСПОРТ У PDF (pdfmake, шрифт Roboto з кирилицею)
@@ -1015,7 +1270,7 @@ async function trailerPng() {
 const plain = html => String(html).replace(/<[^>]+>/g, '');
 
 async function buildPdfDoc() {
-  const R = compute(state);
+  const R = calc();
   const now = new Date();
   const img = await trailerPng();
   const W = 531;
@@ -1025,79 +1280,65 @@ async function buildPdfDoc() {
     layout: grid,
   });
   const th = t => ({ text: t, bold: true, fontSize: 8, color: '#6b7280' });
+  const h2 = t => ({ text: t, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
   const overKg = R.tot.kg > R.S.truckLimit + EPS, overSl = R.tot.pallets > R.S.truckSlots;
+  const bad = overKg || overSl || R.pallets.some(p => p.over);
+  const toLine = { hLineColor: () => '#c9876a', vLineColor: () => '#c9876a', hLineWidth: () => .6, vLineWidth: () => .6 };
 
   const content = [
     { text: T.pdf.title, fontSize: 17, bold: true },
     { text: now.toLocaleString('uk-UA', { dateStyle: 'long', timeStyle: 'short' }), color: '#6b7280', margin: [0, 2, 0, 10] },
+    { table: { widths: [190, '*'], body: [
+        [{ text: 'TRANSPORT ORDER', colSpan: 2, bold: true, alignment: 'center', fillColor: '#f2a986', fontSize: 11 }, {}],
+        ...buildTO(R).map(([a, b, auto]) => [{ text: a, fillColor: '#f6c3aa' }, { text: b, fillColor: '#f6c3aa', bold: auto }]),
+      ] }, layout: toLine },
+    h2(T.summary),
     { columns: [
-        box(T.totBoxes, fmt(R.tot.boxes)),
-        box(T.totKg, `${fmt(R.tot.kg)} / ${fmt(R.S.truckLimit)}`, overKg),
         box(T.totPallets, `${R.tot.pallets} / ${R.S.truckSlots}`, overSl),
+        box(T.totKg, `${fmt(R.tot.kg)} / ${fmt(R.S.truckLimit)}`, overKg),
       ], columnGap: 8 },
-    { text: (R.freeKg >= 0 && R.freeSlots >= 0 ? plain(T.free(fmt(R.freeKg), R.freeSlots)) + ' ' : '') + R.limiter, margin: [0, 6, 0, 0] },
-    ...(R.clientSum.length ? [
-      { text: T.byClient, fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
-      { table: { headerRows: 0, widths: [8, '*', 70, 50],
-          body: R.clientSum.flatMap(c => [
-            [{ text: '', fillColor: c.color }, { text: c.name, bold: true }, { text: `${fmt(c.kg)} кг`, bold: true, alignment: 'right' }, { text: `${c.pallets} пал.`, bold: true, alignment: 'right' }],
-            ...[...c.products.values()].map(x => [{ text: '' }, { text: x.name, color: '#4b5563', margin: [10, 0, 0, 0] }, { text: `${fmt(x.kg)} кг`, alignment: 'right', color: '#4b5563' }, { text: `${x.pallets} пал.`, alignment: 'right', color: '#4b5563' }]),
-          ]) },
-        layout: 'lightHorizontalLines' },
-    ] : []),
-    { text: T.checks, fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
-    R.messages.length
-      ? { ul: R.messages.map(m => ({ text: m.text, color: m.level === 'err' ? '#c62828' : '#b45309' })) }
-      : { text: T.allOk, color: '#15803d' },
+    { text: (!R.pallets.length ? T.statusEmpty : bad ? T.statusBad : T.statusOk(fmt(R.freeKg), R.freeSlots)).replace(/^[✓✕]\s*/, ''),
+      color: bad ? '#c62828' : '#15803d', bold: true, margin: [0, 6, 0, 0] },
   ];
+  const shown = R.clientSum.filter(c => c.pallets);
+  if (shown.length) {
+    content.push(h2(T.pdf.items));
+    content.push({ table: { widths: [8, '*', 70, 50],
+        body: shown.flatMap(c => [
+          [{ text: '', fillColor: c.color }, { text: `${c.idx}. ${c.name}`, bold: true }, { text: `${fmt(c.kg)} кг`, bold: true, alignment: 'right' }, { text: `${c.pallets} ${T.palShort}`, bold: true, alignment: 'right' }],
+          ...[...c.products.values()].map(x => [{ text: '' }, { text: x.name, color: '#4b5563', margin: [10, 0, 0, 0] }, { text: `${fmt(x.kg)} кг`, alignment: 'right', color: '#4b5563' }, { text: `${x.pallets} ${T.palShort}`, alignment: 'right', color: '#4b5563' }]),
+        ]) },
+      layout: 'lightHorizontalLines' });
+  }
+  content.push(h2(T.checks));
+  content.push(R.messages.length
+    ? { ul: R.messages.map(m => ({ text: m.text, color: m.level === 'err' ? '#c62828' : '#b45309' })) }
+    : { text: T.allOk, color: '#15803d' });
   if (img) {
-    content.push({ text: T.trailer, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
+    content.push(h2(T.trailer));
     content.push({ image: img.data, width: W });
   }
-
-  // позиції
-  const posRows = R.results.filter(r => r.product).map(r => [
-    { text: String(r.n) },
-    { text: (r.client ? r.client + ' · ' : '') + r.product.name },
-    { text: T.modes[r.pos.mode] + (r.kgRequested !== null ? ` (${fmt(r.kgRequested)} кг)` : r.pos.mode !== 'fill' && r.pos.value ? `: ${r.pos.value}` : '') },
-    { text: r.active ? fmt(r.boxes) : '—', alignment: 'right' },
-    { text: r.active ? fmt(r.kg) : '—', alignment: 'right' },
-    { text: r.active ? `${r.pallets} (${T.pdf.palletsShort(r.full, r.rem)})` : '—' },
-    { text: r.bpp ? String(r.bpp) : '—', alignment: 'right' },
-  ]);
-  if (posRows.length) {
-    content.push({ text: T.pdf.positions, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
-    content.push({
-      table: { headerRows: 1, widths: [16, '*', 110, 46, 52, 100, 46],
-        body: [[th(T.thN), th(T.thProduct), th(T.pdf.thMode), th(T.thBoxes), th(T.thKg), th(T.pdf.thPallets), th(T.pdf.thBpp)], ...posRows] },
-      layout: 'lightHorizontalLines',
-    });
-  }
-
-  // палети
   if (R.pallets.length) {
-    content.push({ text: T.pallets, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
+    content.push(h2(T.pallets(R.pallets.length)));
     content.push({
-      table: { headerRows: 1, widths: [20, 8, '*', 50, 60, 170],
-        body: [[th(T.thN), th(''), th(T.thProduct), th(T.thBoxes), th(T.thKg), th(T.thStatus)],
+      table: { headerRows: 1, widths: [20, 8, '*', 60, 160],
+        body: [[th(T.thN), th(''), th(`${T.thClient} · ${T.thProduct}`), th(T.thKg), th(T.thStatus)],
           ...R.pallets.map(p => {
-            const bad = p.over || p.overSlots || p.overTruck;
-            const fill = bad ? '#fdecec' : null;
+            const b = p.over || p.overSlots || p.overTruck;
+            const fill = b ? '#fdecec' : null;
             const status = (p.partial ? T.partial : T.full) + (p.over ? ' · ' + T.overweight : '') +
               (p.overSlots ? ' · ' + T.overSlots : p.overTruck ? ' · ' + T.overTruckKg : '');
             return [
               { text: String(p.n), fillColor: fill },
               { text: '', fillColor: p.r.color },
-              { text: (p.r.client ? p.r.client + ' · ' : '') + p.r.product.name, fillColor: fill },
-              { text: String(p.boxes), alignment: 'right', fillColor: fill },
+              { text: `${p.r.client || '—'} · ${p.r.product.name}`, fillColor: fill },
               { text: fmt(p.kg), alignment: 'right', fillColor: fill },
-              { text: status, fillColor: fill, color: bad ? '#c62828' : '#1d2330' },
+              { text: status, fillColor: fill, color: b ? '#c62828' : '#1d2330' },
             ];
           })] },
       layout: 'lightHorizontalLines',
     });
   }
-
   return {
     pageSize: 'A4', pageMargins: [32, 32, 32, 36],
     defaultStyle: { font: 'Roboto', fontSize: 9, lineHeight: 1.15 },
@@ -1105,6 +1346,7 @@ async function buildPdfDoc() {
     content,
   };
 }
+
 
 function setPdfStatus(text, isErr) {
   const el = $('pdf-status');
@@ -1150,7 +1392,6 @@ $('btn-pdf').onclick = async () => {
 
 renderStatic();
 renderAll();
-
 </script>
 </body>
 </html>
