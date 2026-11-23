@@ -63,12 +63,16 @@
   .client-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
   .client-row:first-of-type{border-top:none}
   .client-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .client-block{border-top:1px solid var(--line);padding:4px 0 6px}
-  .client-block:first-of-type{border-top:none}
-  .client-block .client-row{border-top:none}
-  .client-prod{display:flex;gap:8px;padding:2px 0 2px 20px;font-size:13px;color:var(--muted)}
-  .client-prod .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .client-prod b{color:var(--text);font-weight:600}
+  .ctab{width:auto;min-width:min(100%,420px);max-width:560px;border-collapse:collapse;font-size:14px}
+  .ctab td{padding:4px 10px;border:none}
+  .ctab td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .ctab tr.c td{font-weight:650;padding-top:9px;border-top:1px solid var(--line)}
+  .ctab tbody:first-child tr.c td{border-top:none;padding-top:4px}
+  .ctab tr.p td:first-child{padding-left:28px}
+  .ctab tr.p:nth-child(even) td{background:#f3f5f8}
+  .ctab tr.p:hover td{background:var(--accent-soft)}
+  .ctab tr.p td{color:#374151}
+  .ctab .u{color:var(--muted);font-weight:400}
   .free{margin-top:10px;padding:10px;border-radius:8px;background:var(--accent-soft);font-size:14px}
 
   /* checks */
@@ -666,10 +670,10 @@ function update() {
     <div class="card"><div class="lbl">${T.totPallets}</div><div class="val num">${R.tot.pallets}</div><div class="sub">${T.ofLimit(R.S.truckSlots)}</div></div>`;
   const names = [...new Set(state.positions.map(x => String(x.client || '').trim()).filter(Boolean))];
   $('clients-list').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
-  $('clients-sum').innerHTML = R.clientSum.length ? `<h3>${T.byClient}</h3>` + R.clientSum.map(c =>
-    `<div class="client-block"><div class="client-row"><span class="dot" style="background:${c.color}"></span><span class="nm"><b>${esc(c.name)}</b></span><span>${T.clientLine(c.pallets, fmt(c.kg))}</span></div>` +
-    [...c.products.values()].map(x => `<div class="client-prod"><span class="nm">${esc(x.name)}</span><span>${T.prodLine(fmt(x.kg), x.pallets)}</span></div>`).join('') +
-    `</div>`).join('') : '';
+  $('clients-sum').innerHTML = R.clientSum.length ? `<h3>${T.byClient}</h3><table class="ctab">` + R.clientSum.map(c =>
+    `<tbody><tr class="c"><td><span class="dot" style="background:${c.color}"></span> ${esc(c.name)}</td><td class="r">${fmt(c.kg)} <span class="u">кг</span></td><td class="r">${c.pallets} <span class="u">пал.</span></td></tr>` +
+    [...c.products.values()].map(x => `<tr class="p"><td>${esc(x.name)}</td><td class="r">${fmt(x.kg)} <span class="u">кг</span></td><td class="r">${x.pallets} <span class="u">пал.</span></td></tr>`).join('') + '</tbody>'
+  ).join('') + '</table>' : '';
   $('free').innerHTML = (R.freeKg >= 0 && R.freeSlots >= 0 ? T.free(fmt(R.freeKg), R.freeSlots) + ' ' : '') + R.limiter;
 
   // перевірки
