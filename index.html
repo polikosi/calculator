@@ -445,7 +445,7 @@ const T = {
     delClient: 'Забути клієнта', delItem: 'Забути',
   },
   xlsx: {
-    btn: '↓ Excel', btnTitle: 'Завантажити Transport Order в Excel (.xlsx)', lbl: 'Назва файлу', ok: 'Завантажити', cancel: 'Скасувати',
+    btn: '↓ Excel', btnTitle: 'Завантажити Transport Order в Excel (.xlsx)', lbl: 'Назва файлу', ok: 'Завантажити Excel', cancel: 'Скасувати',
     preparing: 'Готую Excel…', saved: 'Excel готовий', failed: 'Не вдалося створити Excel. Спробуйте ще раз',
   },
   tpl: {
@@ -485,7 +485,7 @@ const T = {
     opened: 'Відкрито рейс з історії.',
   },
   pdf: {
-    btn: '↓ PDF', btnTitle: 'Завантажити PDF',
+    btn: '↓ PDF', btnTitle: 'Завантажити PDF', ok: 'Завантажити PDF',
     preparing: 'Готую PDF…',
     saved: 'PDF готовий',
     declined: 'Збереження скасовано',
@@ -1895,13 +1895,20 @@ async function downloadXlsx(name) {
     setPdfStatus(T.xlsx.saved);
   } catch (e) { console.error(e); setPdfStatus(T.xlsx.failed, true); }
 }
-$('btn-xlsx').onclick = () => {
+// одне поле назви файлу для Excel і PDF; формат вибирається кнопкою
+let exportKind = 'xlsx';
+function openExport(kind) {
   const pop = $('xlsx-pop');
-  pop.hidden = !pop.hidden;
+  const same = !pop.hidden && exportKind === kind;
+  exportKind = kind;
   $('save-pop').hidden = true;
+  pop.hidden = same;
+  $('xlsx-ok').textContent = kind === 'pdf' ? T.pdf.ok : T.xlsx.ok;
   if (!pop.hidden) { $('xlsx-name').value = suggestXlsxName(); $('xlsx-name').focus(); $('xlsx-name').select(); }
-};
-const doXlsx = () => { $('xlsx-pop').hidden = true; downloadXlsx($('xlsx-name').value); };
+}
+$('btn-xlsx').onclick = () => openExport('xlsx');
+$('btn-pdf').onclick = () => openExport('pdf');
+const doXlsx = () => { $('xlsx-pop').hidden = true; if (exportKind === 'pdf') downloadPdf($('xlsx-name').value); else downloadXlsx($('xlsx-name').value); };
 $('xlsx-ok').onclick = doXlsx;
 $('xlsx-cancel').onclick = () => { $('xlsx-pop').hidden = true; };
 $('xlsx-name').addEventListener('keydown', e => { if (e.key === 'Enter') doXlsx(); if (e.key === 'Escape') $('xlsx-pop').hidden = true; });
@@ -1926,10 +1933,10 @@ function loadScript(src) {
     document.head.appendChild(el);
   });
 }
+let pdfFontsReady = false;
 async function ensurePdfMake() {
-  if (window.pdfMake && window.pdfMake.vfs) return;
   if (!window.pdfMake) await loadScript(PDFMAKE_URL);
-  if (!window.pdfMake.vfs) await loadScript(VFS_URL);
+  if (!pdfFontsReady) { await loadScript(VFS_URL); pdfFontsReady = true; }   // шрифти з кирилицею — один раз
 }
 async function trailerPng() {
   const R = calc();
@@ -2022,7 +2029,7 @@ function setPdfStatus(text, isErr) {
   el.classList.toggle('err', !!isErr);
 }
 
-$('btn-pdf').onclick = async () => {
+async function downloadPdf(fileName) {
   const btn = $('btn-pdf');
   btn.disabled = true;
   setPdfStatus(T.pdf.preparing);
@@ -2031,8 +2038,7 @@ $('btn-pdf').onclick = async () => {
     await ensurePdfMake();
     const dd = await buildPdfDoc();
     const blob = await new Promise((res, rej) => { try { window.pdfMake.createPdf(dd).getBlob(res); } catch (e) { rej(e); } });
-    const d = new Date(), z = n => String(n).padStart(2, '0');
-    const name = T.pdf.filename(`${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}-${z(d.getMinutes())}`);
+    const name = (safeFile(fileName) || safeFile(suggestXlsxName())) + '.pdf';
     const dl = await getDownloads();
     if (dl) {
       await dl.save({ filename: name, data: blob });
@@ -2057,7 +2063,7 @@ $('btn-pdf').onclick = async () => {
   } finally {
     btn.disabled = false;
   }
-};
+}
 
 memInit();
 state.templates.forEach(t => { if (!String(t.name || '').trim()) t.name = (t.summary && t.summary.names.join(', ')) || T.tpl.defaultName(); });
