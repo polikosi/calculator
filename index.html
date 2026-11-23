@@ -166,6 +166,12 @@
   .save-pop{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:#fff;border:1px solid var(--accent);border-radius:var(--radius);padding:12px 16px}
   .save-pop[hidden]{display:none}
   #save-hint{flex-basis:100%}
+  .cur-src{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:var(--radius);padding:12px 16px}
+  .cur-src .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .cur-src .nm{font-size:22px;font-weight:750;line-height:1.2;word-break:break-word}
+  .cur-src.none{border-left-color:#cfd4dc}
+  .cur-src.none .nm{color:var(--muted);font-weight:600;font-size:18px}
+  .cur-src.hist{border-left-color:#7e22ce}
 
   /* templates + tripHistory */
   .tpl-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
@@ -271,6 +277,7 @@
     <button id="save-cancel"></button>
     <span class="small muted" id="save-hint"></span>
   </div>
+  <div class="cur-src" id="cur-src"></div>
 
   <div class="layout">
     <main class="col-main">
@@ -403,6 +410,7 @@ const T = {
     existsHint: 'Шаблон з такою назвою вже є — його буде перезаписано.',
     grpTpl: 'Шаблони', grpTplRecent: 'Останні шаблони', grpHist: 'Останні рейси',
     noMatch: 'Нічого не знайдено',
+    curTpl: 'Відкритий шаблон', curHist: 'Відкритий рейс з історії', curNone: 'Новий рейс', curNoneName: 'без шаблону',
     manageHint: 'Новий шаблон зберігається на сторінці «Рейс» кнопкою «Зберегти як шаблон».',
     title: 'Шаблони', sub: 'зберігаються в цьому браузері',
     namePh: 'Назва шаблону, напр. «Вівторок — Угорщина»',
@@ -619,6 +627,7 @@ function loadSnapshot(snap, keepDate) {
   renderTrip(); renderClients(); update();
 }
 
+const histName = h => `${[fmtDate(h.trip.loadDate), h.trip.loadTime].filter(Boolean).join(', ') || T.hist.noDate} · ${h.summary.names.join(', ') || '—'}`;
 const fmtSaved = iso => { try { return new Date(iso).toLocaleString('uk-UA', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return ''; } };
 function tplStatus(text, err) { const el = $('tpl-status'); el.textContent = text; el.style.color = err ? 'var(--err)' : ''; setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 6000); }
 
@@ -664,6 +673,8 @@ function saveTemplate(name) {
   const old = findTpl(name);
   if (old) Object.assign(old, data);
   else state.templates.unshift({ id: newId(), name, ...data });
+  state.source = { kind: 'tpl', name: old ? old.name : name };
+  renderSource();
   save();
   if (!$('templates').hidden) renderTemplates();
   return { name, overwritten: !!old };
@@ -701,8 +712,8 @@ function renderCombo() {
 function closeCombo() { $('combo-list').hidden = true; $('tpl-search').setAttribute('aria-expanded', 'false'); }
 function pickCombo(i) {
   const it = comboItems[i]; if (!it) return;
-  if (it.kind === 'tpl') { it.ref.lastUsed = new Date().toISOString(); loadSnapshot(it.ref, false); }
-  else loadSnapshot(it.ref, true);
+  if (it.kind === 'tpl') { it.ref.lastUsed = new Date().toISOString(); state.source = { kind: 'tpl', name: it.ref.name }; loadSnapshot(it.ref, false); }
+  else { state.source = { kind: 'hist', name: histName(it.ref) }; loadSnapshot(it.ref, true); }
   $('tpl-search').value = ''; closeCombo(); save();
   setPdfStatus(it.kind === 'tpl' ? T.tpl.opened(it.ref.name) : T.hist.opened);
 }
@@ -1128,7 +1139,19 @@ function update() {
 
   renderTrailer(R);
   renderTO(R);
+  renderSource();
   save();
+}
+
+/** Банер: який шаблон / рейс зараз відкритий. */
+function renderSource() {
+  const src = state.source || null;
+  const el = $('cur-src');
+  el.className = 'cur-src' + (!src ? ' none' : src.kind === 'hist' ? ' hist' : '');
+  const lbl = !src ? T.tpl.curNone : src.kind === 'hist' ? T.tpl.curHist : T.tpl.curTpl;
+  const nm = !src ? T.tpl.curNoneName : src.name;
+  el.innerHTML = `<div><div class="lbl">${esc(lbl)}</div><div class="nm">${esc(nm)}</div></div>`;
+  document.title = src ? `${src.name} — ${T.title}` : T.title;
 }
 
 /* =========================================================
@@ -1480,12 +1503,13 @@ $('hist-search').addEventListener('input', renderHistory);
 $('tpl-list').addEventListener('input', e => {
   if (!e.target.matches('[data-tpl-name]')) return;
   const tp = state.templates.find(t => t.id === +e.target.closest('[data-tid]').dataset.tid);
+  if (state.source && state.source.kind === 'tpl' && state.source.name === tp.name) { state.source.name = e.target.value; renderSource(); }
   tp.name = e.target.value; save();
 });
 $('tpl-list').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const tp = state.templates.find(t => t.id === +b.closest('[data-tid]').dataset.tid);
-  if (b.hasAttribute('data-tpl-open')) { tp.lastUsed = new Date().toISOString(); loadSnapshot(tp, false); showView('trip'); setPdfStatus(T.tpl.opened(tp.name)); }
+  if (b.hasAttribute('data-tpl-open')) { tp.lastUsed = new Date().toISOString(); state.source = { kind: 'tpl', name: tp.name }; loadSnapshot(tp, false); showView('trip'); setPdfStatus(T.tpl.opened(tp.name)); }
   else if (b.hasAttribute('data-tpl-over')) {
     const snap = snapshot(); delete snap.trip.loadDate; delete snap.trip.loadTime;
     Object.assign(tp, snap, { savedAt: new Date().toISOString(), summary: summaryOf({ ...snap, trip: { ...emptyTrip(), ...snap.trip } }) });
@@ -1498,13 +1522,14 @@ $('tpl-list').addEventListener('click', e => {
 $('hist-list').addEventListener('click', e => {
   const b = e.target.closest('[data-hist-open]'); if (!b) return;
   const h = tripHistory.find(x => String(x.tripId) === b.closest('[data-hid]').dataset.hid);
-  if (h) { loadSnapshot(h, true); showView('trip'); setPdfStatus(T.hist.opened); }
+  if (h) { state.source = { kind: 'hist', name: histName(h) }; loadSnapshot(h, true); showView('trip'); setPdfStatus(T.hist.opened); }
 });
 $('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
 const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
 $('btn-clear-no').onclick = hideConfirm;
 $('btn-clear-yes').onclick = () => {
   archiveTrip();
+  state.source = null;
   state.tripId = Date.now();
   // новий рейс: адреса завантаження, платник і режим лишаються
   const t = state.trip;
