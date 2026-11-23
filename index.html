@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор завантаження палет і фури</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#6b7280; --line:#e3e6eb;
+    --accent:#2563eb; --accent-soft:#e8efff; --warn:#b45309; --err:#c62828;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:20px;margin:0}
+  h2{font-size:16px;margin:0 0 10px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--text)}
+  button:hover{background:#f0f2f5}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:#1d4ed8}
+  button.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px}
+  button.ghost:hover{color:var(--err);background:#fdecec}
+  button.add{margin-top:10px;color:var(--accent);border-style:dashed}
+  input,select{font:inherit;border:1px solid #cfd4dc;border-radius:7px;padding:6px 8px;background:#fff;color:var(--text);width:100%;min-width:0}
+  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  label.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .num{font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;flex:none}
+
+  /* settings */
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+
+  /* products */
+  .prod-row{display:grid;grid-template-columns:18px 2fr 1fr 1fr 1fr 1.3fr 34px;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
+  .prod-row:first-of-type{border-top:none}
+  .prod-row .dot{margin-bottom:9px}
+  .prod-max{padding-bottom:7px;font-size:13px}
+  .prod-err{grid-column:2 / -1;font-size:13px;color:var(--err)}
+
+  /* positions */
+  .pos{border:1px solid var(--line);border-left:5px solid #ccc;border-radius:8px;padding:10px;margin-bottom:10px}
+  .pos-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600;font-size:14px}
+  .pos-grid{display:grid;grid-template-columns:1.6fr 1.6fr 1.4fr 1fr;gap:8px}
+  .pos-res{margin-top:8px;font-size:14px}
+  .pos-res .detail{color:var(--muted);font-size:13px}
+  .pos-note{font-size:13px;color:var(--muted);margin-top:4px}
+
+  /* summary */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .card{border:1px solid var(--line);border-radius:8px;padding:10px}
+  .card .lbl{font-size:12px;color:var(--muted)}
+  .card .val{font-size:22px;font-weight:650}
+  .card .sub{font-size:12px;color:var(--muted)}
+  .clients{margin-top:12px}
+  .clients h3{font-size:13px;margin:0 0 6px;color:var(--muted);font-weight:600}
+  .client-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
+  .client-row:first-of-type{border-top:none}
+  .client-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .free{margin-top:10px;padding:10px;border-radius:8px;background:var(--accent-soft);font-size:14px}
+
+  /* checks */
+  #checks ul{margin:0;padding-left:18px}
+  #checks li{margin:3px 0}
+  #checks li.err{color:var(--err)}
+  #checks li.warn{color:var(--warn)}
+  #checks .ok{color:#15803d}
+
+  /* pallets table */
+  table{border-collapse:collapse;width:100%}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:14px}
+  th{font-size:12px;color:var(--muted);font-weight:600}
+  td.r,th.r{text-align:right}
+
+  /* trailer */
+  #trailer svg{width:100%;height:auto;display:block}
+  #trailer{overflow-x:auto}
+  .bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px}
+  .bar-lbl{font-size:13px;margin-bottom:4px}
+  .track{height:10px;background:#eceff3;border-radius:6px;overflow:hidden}
+  .track .fill{height:100%;background:var(--accent);border-radius:6px}
+  .bar.over .fill{background:var(--err)}
+  .bar.over .bar-lbl b{color:var(--err)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .sw{width:14px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+  #pdf-status.err{color:var(--err)}
+  button:disabled{opacity:.6;cursor:wait}
+  .confirm{display:none;gap:6px;align-items:center;font-size:14px}
+  .confirm.show{display:inline-flex}
+
+  @media (max-width:720px){
+    .prod-row{grid-template-columns:18px 1fr 1fr 34px}
+    .prod-row .f-name{grid-column:2 / 4}
+    .prod-row .f-plimit{grid-column:2 / 3}
+    .prod-row .f-space{grid-column:3 / 4}
+    .prod-row .prod-max{grid-column:2 / 5}
+    .pos-grid{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="t-title"></h1>
+    <div class="actions">
+      <span class="small muted" id="pdf-status"></span>
+      <button class="primary" id="btn-pdf"></button>
+      <button id="btn-settings"></button>
+      <button id="btn-clear"></button>
+      <span class="confirm" id="clear-confirm">
+        <span id="t-clear-q"></span>
+        <button class="primary" id="btn-clear-yes"></button>
+        <button id="btn-clear-no"></button>
+      </span>
+    </div>
+  </header>
+
+  <section id="settings" hidden>
+    <h2 id="t-settings"></h2>
+    <div class="settings-grid" id="settings-grid"></div>
+  </section>
+
+  <section>
+    <h2 id="t-products"></h2>
+    <div id="products"></div>
+    <button class="add" id="btn-add-product"></button>
+  </section>
+
+  <section>
+    <h2 id="t-positions"></h2>
+    <div id="positions"></div>
+    <button class="add" id="btn-add-position"></button>
+  </section>
+
+  <section>
+    <h2 id="t-summary"></h2>
+    <div class="cards" id="summary"></div>
+    <div class="clients" id="clients-sum"></div>
+    <div class="free" id="free"></div>
+  </section>
+
+  <section>
+    <h2 id="t-trailer"></h2>
+    <div id="trailer"></div>
+    <div class="bars" id="trailer-bars"></div>
+    <div class="legend" id="trailer-legend"></div>
+  </section>
+
+  <section id="checks">
+    <h2 id="t-checks"></h2>
+    <div id="checks-body"></div>
+  </section>
+
+  <section>
+    <h2 id="t-pallets"></h2>
+    <div id="pallets"></div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   ТЕКСТИ — усі написи в одному місці (для майбутніх EN/SK)
+   ========================================================= */
+const T = {
+  title: 'Калькулятор завантаження палет і фури',
+  settingsBtn: 'Налаштування',
+  clearBtn: 'Очистити все',
+  clearQ: 'Почати новий розрахунок? Позиції буде видалено.',
+  yes: 'Так, очистити', no: 'Скасувати',
+  settings: 'Ліміти',
+  sTruck: 'Макс. вага продукту у фурі, кг',
+  sSlots: 'Макс. палет у фурі (місць)',
+  products: 'Довідник товарів',
+  pName: 'Назва', pWeight: 'Вага коробки, кг', pSpace: 'Макс. коробок на палеті', pLimit: 'Макс. вага палети, кг',
+  pSpaceHint: 'необов\'язково',
+  pMax: (n, kg, by) => `На палету: <b class="num">${n}</b> кор. · ${kg} кг <span class="muted">${by === 'space' ? '(обмежує кількість)' : '(обмежує вага)'}</span>`,
+  addProduct: '+ Додати товар',
+  defaultName: n => `Товар ${n}`,
+  positions: 'Позиції завантаження',
+  posN: n => `Позиція ${n}`,
+  fClient: 'Клієнт', clientPh: 'назва клієнта',
+  fProduct: 'Товар', fMode: 'Як задати кількість', fBpp: 'Коробок на палеті',
+  chooseProduct: '— оберіть товар —',
+  modes: { boxes: 'Кількість коробок', kg: 'Кількість кг', pallets: 'Кількість палет (повних)', fill: 'Заповнити фуру' },
+  valueLabel: { boxes: 'Коробок', kg: 'Кілограмів', pallets: 'Палет' },
+  fillNote: 'Кількість рахується автоматично: максимум цього товару у вільних кг і місцях.',
+  addPosition: '+ Додати позицію',
+  enterValue: 'Введіть кількість',
+  fromKg: (req, kg) => `Із ${req} кг → фактично ${kg} кг (вниз до цілих коробок)`,
+  palletsDetail: (full, bpp, rem, remKg) => {
+    const a = [];
+    if (full) a.push(`${full} × ${bpp} кор. (повні)`);
+    if (rem) a.push(`1 неповна: ${rem} кор. (${remKg} кг)`);
+    return a.join(' + ');
+  },
+  summary: 'Підсумки',
+  byClient: 'По клієнтах',
+  noClient: 'Без клієнта',
+  clientLine: (pal, kg) => `<b class="num">${pal}</b> ${plural(pal, ['палета','палети','палет'])} · <b class="num">${kg}</b> кг`,
+  totBoxes: 'Всього коробок', totKg: 'Всього кг', totPallets: 'Всього палет',
+  ofLimit: l => `з ${l}`,
+  free: (kg, slots) => `Вільно: <b class="num">${kg} кг</b> і <b class="num">${slots}</b> ${plural(slots, ['місце','місця','місць'])}.`,
+  limitWeight: 'Обмежує вага — вільних кг не вистачить на повні палети в усіх вільних місцях.',
+  limitSpace: 'Обмежує місце — вільних кг вистачає на повні палети в усіх вільних місцях.',
+  truckFullSlots: 'Усі місця у фурі зайняті.',
+  truckFullKg: 'Ліміт ваги фури вичерпано.',
+  checks: 'Перевірки',
+  allOk: 'Все в межах лімітів.',
+  pallets: 'Палети',
+  noPallets: 'Палет поки немає — додайте позицію.',
+  thN: '№', thClient: 'Клієнт', thProduct: 'Товар', thBoxes: 'Коробок', thKg: 'Вага, кг', thStatus: 'Палета',
+  full: 'повна', partial: 'неповна', overweight: 'перевищення',
+  overTruckKg: 'понад ліміт ваги фури', overSlots: 'не влазить у фуру',
+  trailer: 'Причіп (вигляд збоку)',
+  barKg: 'Вага продукту', barSlots: 'Місця',
+  trOverKg: over => `Перевантаження фури: +${over} кг`,
+  trOutside: n => `Не влазить: ${n} ${plural(n, ['палета','палети','палет'])}`,
+  trMore: n => `ще +${n}`,
+  trFront: 'перед', trRear: 'зад',
+  lgPartial: 'пунктирна рамка — неповна палета', lgOver: 'палета понад свій ліміт ваги або поза фурою',
+  lgOverKg: 'понад ліміт ваги фури', lgFree: 'вільне місце',
+  boxesShort: 'кор.',
+  pdf: {
+    btn: 'Завантажити PDF',
+    preparing: 'Готую PDF…',
+    saved: 'PDF готовий',
+    declined: 'Збереження скасовано',
+    busy: 'Вікно збереження вже відкрите',
+    failed: 'Не вдалося створити PDF. Спробуйте ще раз',
+    noAccess: 'Збереження файлів недоступне з вашим рівнем доступу до сторінки. Попросіть у власника доступ «Commenter».',
+    title: 'Розрахунок завантаження фури',
+    positions: 'Позиції',
+    thMode: 'Як задано', thPallets: 'Палет', thBpp: 'Кор. на палеті',
+    palletsShort: (full, rem) => rem ? `${full} повн. + 1 неповн.` : `${full} повн.`,
+    filename: d => `rozrakhunok-fury_${d}.pdf`,
+  },
+  err: {
+    boxWeightZero: 'Вага коробки має бути більшою за 0',
+    boxHeavier: (w, l) => `Коробка ${w} кг важча за ліміт палети ${l} кг`,
+    spaceInt: 'Макс. коробок на палеті — ціле число більше 0',
+    limitBad: 'Макс. вага палети має бути більшою за 0',
+    noName: 'Вкажіть назву товару',
+    setting: label => `«${label}» — має бути числом більше 0. Поки використовується значення за замовчуванням.`,
+    noProduct: 'Не обрано товар',
+    noClient: 'Не вказано клієнта',
+    badProduct: name => `Товар «${name}» має помилку в довіднику`,
+    badValue: 'Кількість має бути числом більше 0',
+    notInt: what => `${what} — має бути цілим числом`,
+    bppBad: 'Коробок на палеті — ціле число більше 0',
+    palletOver: (kg, over, max) => `Палета ${kg} кг — перевищення на ${over} кг. Максимум ${max} ${plural(max, ['коробка','коробки','коробок'])}`,
+    spaceOver: (n, max) => `На палеті ${n} кор., а за місцем вміщується максимум ${max}`,
+    truckOver: (kg, over, tail) => `Фура ${kg} кг — перевищення на ${over} кг. ${tail}`,
+    truckOverTail: (p, name, b) => `Приберіть ${p} ${plural(p, ['палету','палети','палет'])} «${name}» або ${b} ${plural(b, ['коробку','коробки','коробок'])}`,
+    truckOverTailKg: over => `Приберіть ${over} кг`,
+    slotsOver: (n, max, d) => `Палет ${n} при максимумі ${max} — приберіть ${d} ${plural(d, ['палету','палети','палет'])}`,
+    fillNoRoom: 'Для «Заповнити фуру» не залишилось вільних кг або місць',
+  },
+};
+
+/* =========================================================
+   Утиліти
+   ========================================================= */
+const NF = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 });
+const fmt = n => NF.format(Math.round(n * 100) / 100);
+const EPS = 1e-9;
+const round2 = n => Math.round(n * 100) / 100;
+
+/** "12,5" / "12.5" / "1 200" → число; порожнє → null; сміття → NaN */
+function parseNum(s) {
+  if (s === null || s === undefined) return null;
+  const t = String(s).replace(/[\s ]/g, '').replace(',', '.');
+  if (t === '') return null;
+  if (!/^-?(\d+\.?\d*|\.\d+)$/.test(t)) return NaN;
+  return parseFloat(t);
+}
+function plural(n, f) {
+  n = Math.abs(Math.floor(n));
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return f[0];
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return f[1];
+  return f[2];
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const NO_CLIENT_COLOR = '#9ca3af';
+const COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0891b2', '#ca8a04', '#db2777', '#4b5563', '#65a30d', '#dc2626'];
+
+/* =========================================================
+   Стан + localStorage
+   ========================================================= */
+const LS_KEY = 'pallet-calc-v1';
+const DEFAULTS = { truckLimit: '19880', truckSlots: '33' };
+const DEFAULT_PALLET_LIMIT = '800';
+
+function defaultState() {
+  return {
+    settings: { ...DEFAULTS },
+    products: [
+      { id: 1, name: 'Товар А', boxWeight: '12', maxBySpace: '', palletLimit: DEFAULT_PALLET_LIMIT, color: COLORS[0] },
+      { id: 2, name: 'Товар Б', boxWeight: '15,5', maxBySpace: '', palletLimit: DEFAULT_PALLET_LIMIT, color: COLORS[1] },
+      { id: 3, name: 'Товар В', boxWeight: '8', maxBySpace: '80', palletLimit: DEFAULT_PALLET_LIMIT, color: COLORS[2] },
+    ],
+    positions: [{ id: 4, productId: 1, mode: 'kg', value: '', bpp: '' }],
+    nextId: 5,
+    colorIdx: 3,
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && Array.isArray(s.products) && Array.isArray(s.positions) && s.settings) {
+        // міграція: раніше ліміт палети був спільний у налаштуваннях
+        const old = s.settings.palletLimit;
+        s.products.forEach(p => { if (p.palletLimit === undefined) p.palletLimit = old || DEFAULT_PALLET_LIMIT; });
+        delete s.settings.palletLimit;
+        // старе значення за замовчуванням 19 025 → нове 19 880 (якщо користувач його не змінював)
+        if (String(s.settings.truckLimit).replace(/\s/g, '') === '19025') s.settings.truckLimit = DEFAULTS.truckLimit;
+        return s;
+      }
+    }
+  } catch (e) { /* немає доступу до сховища — працюємо без нього */ }
+  return defaultState();
+}
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { }
+}
+let state = load();
+const newId = () => state.nextId++;
+
+/* =========================================================
+   ЛОГІКА РОЗРАХУНКУ (чиста функція: стан → результат)
+   ========================================================= */
+function compute(st) {
+  const messages = []; // {level:'err'|'warn', text}
+
+  // --- ліміти
+  const S = {};
+  const sDef = [['truckLimit', false, T.sTruck], ['truckSlots', true, T.sSlots]];
+  for (const [k, int, label] of sDef) {
+    const v = parseNum(st.settings[k]);
+    if (v === null || isNaN(v) || v <= 0 || (int && !Number.isInteger(v))) {
+      messages.push({ level: 'err', text: T.err.setting(label) });
+      S[k] = parseFloat(DEFAULTS[k]);
+    } else S[k] = v;
+  }
+
+  // --- довідник
+  const info = {};
+  st.products.forEach(p => {
+    const errors = [];
+    const bw = parseNum(p.boxWeight);
+    const sp = parseNum(p.maxBySpace);
+    let ok = true;
+    let limit = parseNum(p.palletLimit);
+    if (limit === null || isNaN(limit) || limit <= 0) { errors.push(T.err.limitBad); ok = false; limit = 0; }
+    if (bw === null || isNaN(bw) || bw <= 0) { errors.push(T.err.boxWeightZero); ok = false; }
+    else if (limit && bw > limit + EPS) { errors.push(T.err.boxHeavier(fmt(bw), fmt(limit))); ok = false; }
+    let spaceN = null;
+    if (sp !== null) {
+      if (isNaN(sp) || sp <= 0 || !Number.isInteger(sp)) { errors.push(T.err.spaceInt); ok = false; }
+      else spaceN = sp;
+    }
+    if (!String(p.name || '').trim()) errors.push(T.err.noName);
+    const maxByWeight = (limit && bw > 0 && bw <= limit + EPS) ? Math.floor(limit / bw + EPS) : 0;
+    const max = spaceN ? Math.min(maxByWeight, spaceN) : maxByWeight;
+    info[p.id] = { ok, bw, limit, maxByWeight, spaceN, max, errors, by: spaceN && spaceN < maxByWeight ? 'space' : 'weight' };
+  });
+
+  // --- позиції: спершу всі, крім «заповнити фуру»
+  const results = st.positions.map((pos, i) => ({
+    id: pos.id, n: i + 1, pos, product: null, client: String(pos.client || '').trim(), active: false, empty: false,
+    boxes: 0, kg: 0, bpp: 0, full: 0, rem: 0, remKg: 0, palletKg: 0, pallets: 0,
+    kgRequested: null, errors: [], warnings: [],
+  }));
+
+  const prepare = r => {
+    const pos = r.pos;
+    const prod = st.products.find(p => p.id === pos.productId);
+    if (!prod) { r.errors.push(T.err.noProduct); return false; }
+    r.product = prod;
+    const pi = info[prod.id];
+    if (!pi.ok) { r.errors.push(T.err.badProduct(prod.name || '?')); return false; }
+    r.bw = pi.bw;
+    r.limit = pi.limit;
+    r.bpp = pi.max;
+    const ov = null; // ручну зміну коробок на палеті прибрано — завжди максимум із довідника
+    if (ov !== null) {
+      if (isNaN(ov) || ov <= 0 || !Number.isInteger(ov)) { r.errors.push(T.err.bppBad); return false; }
+      r.bpp = ov;
+      r.bppOverride = true;
+    }
+    r.palletKg = round2(r.bpp * r.bw);
+    return true;
+  };
+
+  const finish = r => {
+    r.full = Math.floor(r.boxes / r.bpp);
+    r.rem = r.boxes % r.bpp;
+    r.remKg = round2(r.rem * r.bw);
+    r.pallets = r.full + (r.rem ? 1 : 0);
+    r.kg = round2(r.boxes * r.bw);
+    r.active = r.boxes > 0;
+  };
+
+  let usedKg = 0, usedSlots = 0;
+  for (const r of results) {
+    if (r.pos.mode === 'fill') continue;
+    if (!prepare(r)) continue;
+    const v = parseNum(r.pos.value);
+    if (v === null) { r.empty = true; continue; }
+    if (isNaN(v) || v <= 0) { r.errors.push(T.err.badValue); continue; }
+    if (r.pos.mode === 'boxes') {
+      if (!Number.isInteger(v)) { r.errors.push(T.err.notInt(T.valueLabel.boxes)); continue; }
+      r.boxes = v;
+    } else if (r.pos.mode === 'kg') {
+      r.kgRequested = v;
+      r.boxes = Math.floor(v / r.bw + EPS);
+    } else if (r.pos.mode === 'pallets') {
+      if (!Number.isInteger(v)) { r.errors.push(T.err.notInt(T.valueLabel.pallets)); continue; }
+      r.boxes = v * r.bpp;
+    }
+    finish(r);
+    usedKg += r.kg; usedSlots += r.pallets;
+  }
+
+  // --- «Заповнити фуру»: по черзі забирає вільне
+  for (const r of results) {
+    if (r.pos.mode !== 'fill') continue;
+    if (!prepare(r)) continue;
+    const freeKg = S.truckLimit - usedKg;
+    const freeSlots = S.truckSlots - usedSlots;
+    let boxes = 0;
+    if (freeSlots > 0 && freeKg >= r.bw - EPS) {
+      const full = Math.max(0, Math.min(freeSlots, Math.floor(freeKg / r.palletKg + EPS)));
+      boxes = full * r.bpp;
+      const restKg = freeKg - full * r.palletKg;
+      if (freeSlots - full > 0 && restKg > 0) {
+        boxes += Math.min(r.bpp - 1, Math.floor(restKg / r.bw + EPS));
+      }
+    }
+    if (boxes === 0) r.warnings.push(T.err.fillNoRoom);
+    r.boxes = boxes;
+    finish(r);
+    usedKg += r.kg; usedSlots += r.pallets;
+  }
+
+  // --- перевірки палет у позиціях
+  for (const r of results) {
+    if (!r.active) continue;
+    const pi = info[r.product.id];
+    const heaviest = r.full > 0 ? r.palletKg : r.remKg;
+    if (heaviest > r.limit + EPS) {
+      r.errors.push(T.err.palletOver(fmt(heaviest), fmt(heaviest - r.limit), pi.max));
+    } else if (r.bppOverride && pi.spaceN && r.bpp > pi.spaceN) {
+      r.errors.push(T.err.spaceOver(r.bpp, pi.spaceN));
+    }
+  }
+
+  // --- клієнти: колір за порядком першої появи; без клієнта — колір товару
+  const clients = new Map(); // ключ (нижній регістр) → {name, color, pallets, kg}
+  results.forEach(r => {
+    if (!r.client) return;
+    const key = r.client.toLowerCase();
+    if (!clients.has(key)) clients.set(key, { name: r.client, color: COLORS[clients.size % COLORS.length], pallets: 0, kg: 0 });
+  });
+  results.forEach(r => {
+    r.clientInfo = r.client ? clients.get(r.client.toLowerCase()) : null;
+    r.color = r.clientInfo ? r.clientInfo.color : NO_CLIENT_COLOR;
+    r.label = r.client || (r.product ? r.product.name : '');
+    if (r.active && !r.client) r.warnings.push(T.err.noClient);
+  });
+
+  // --- список палет
+  const pallets = [];
+  for (const r of results) {
+    if (!r.active) continue;
+    for (let k = 0; k < r.full; k++) pallets.push({ r, boxes: r.bpp, kg: r.palletKg, partial: false });
+    if (r.rem) pallets.push({ r, boxes: r.rem, kg: r.remKg, partial: true });
+  }
+  let cum = 0;
+  pallets.forEach((p, i) => {
+    p.n = i + 1; p.over = p.kg > p.r.limit + EPS;
+    cum = round2(cum + p.kg);
+    p.overTruck = cum > S.truckLimit + EPS;   // ця палета вже не вміщується за вагою фури
+    p.overSlots = p.n > S.truckSlots;          // ця палета не має місця у фурі
+  });
+
+  // --- підсумки
+  const noClient = { name: T.noClient, color: NO_CLIENT_COLOR, pallets: 0, kg: 0 };
+  pallets.forEach(p => {
+    const c = p.r.clientInfo || noClient;
+    c.pallets++; c.kg = round2(c.kg + p.kg);
+  });
+  const clientSum = [...clients.values()].filter(c => c.pallets);
+  if (noClient.pallets) clientSum.push(noClient);
+
+  const tot = {
+    boxes: results.reduce((a, r) => a + (r.active ? r.boxes : 0), 0),
+    kg: round2(results.reduce((a, r) => a + (r.active ? r.kg : 0), 0)),
+    pallets: pallets.length,
+  };
+  const freeKg = round2(S.truckLimit - tot.kg);
+  const freeSlots = S.truckSlots - tot.pallets;
+
+  // --- перевірки фури
+  if (tot.kg > S.truckLimit + EPS) {
+    const over = round2(tot.kg - S.truckLimit);
+    // підказка — по останній активній позиції
+    const last = [...results].reverse().find(r => r.active);
+    let tail = T.err.truckOverTailKg(fmt(over));
+    if (last && last.kg >= over - EPS) {
+      const b = Math.ceil(over / last.bw - EPS);
+      let removed = 0, p = 0;
+      if (last.rem) { removed += last.remKg; p++; }
+      while (removed < over - EPS && p < last.pallets) { removed += last.palletKg; p++; }
+      tail = T.err.truckOverTail(p, last.product.name, b);
+    }
+    messages.push({ level: 'err', text: T.err.truckOver(fmt(tot.kg), fmt(over), tail) });
+  }
+  if (tot.pallets > S.truckSlots) {
+    messages.push({ level: 'err', text: T.err.slotsOver(tot.pallets, S.truckSlots, tot.pallets - S.truckSlots) });
+  }
+
+  // повідомлення довідника і позицій — у загальний список
+  st.products.forEach(p => info[p.id].errors.forEach(e => messages.push({ level: 'err', text: `«${p.name || '?'}»: ${e}` })));
+  results.forEach(r => {
+    const who = T.posN(r.n) + (r.product ? ` («${r.product.name}»)` : '');
+    r.errors.forEach(e => messages.push({ level: 'err', text: `${who}: ${e}` }));
+    r.warnings.forEach(e => messages.push({ level: 'warn', text: `${who}: ${e}` }));
+  });
+
+  let limiter = '';
+  if (freeSlots <= 0) limiter = T.truckFullSlots;
+  else if (freeKg <= 0) limiter = T.truckFullKg;
+  else {
+    // найважча можлива палета серед товарів довідника
+    const maxPallet = Math.max(0, ...Object.values(info).map(i => i.ok ? i.max * i.bw : 0)) || parseFloat(DEFAULT_PALLET_LIMIT);
+    limiter = freeKg < freeSlots * maxPallet - EPS ? T.limitWeight : T.limitSpace;
+  }
+
+  return { S, info, results, pallets, tot, freeKg, freeSlots, limiter, messages, clientSum };
+}
+
+/* =========================================================
+   РЕНДЕР
+   ========================================================= */
+const $ = id => document.getElementById(id);
+
+function renderStatic() {
+  $('t-title').textContent = T.title;
+  document.title = T.title;
+  $('btn-settings').textContent = T.settingsBtn;
+  $('btn-pdf').textContent = T.pdf.btn;
+  $('btn-clear').textContent = T.clearBtn;
+  $('t-clear-q').textContent = T.clearQ;
+  $('btn-clear-yes').textContent = T.yes;
+  $('btn-clear-no').textContent = T.no;
+  $('t-settings').textContent = T.settings;
+  $('t-products').textContent = T.products;
+  $('btn-add-product').textContent = T.addProduct;
+  $('t-positions').textContent = T.positions;
+  $('btn-add-position').textContent = T.addPosition;
+  $('t-summary').textContent = T.summary;
+  $('t-checks').textContent = T.checks;
+  $('t-trailer').textContent = T.trailer;
+  $('t-pallets').textContent = T.pallets;
+}
+
+function renderSettings() {
+  const f = (k, label) => `<label class="fld">${esc(label)}
+    <input inputmode="decimal" data-setting="${k}" value="${esc(state.settings[k])}"></label>`;
+  $('settings-grid').innerHTML = f('truckLimit', T.sTruck) + f('truckSlots', T.sSlots);
+}
+
+function renderProducts() {
+  $('products').innerHTML = state.products.map(p => `
+    <div class="prod-row" data-pid="${p.id}">
+      <span class="dot" style="background:${p.color}"></span>
+      <label class="fld f-name">${T.pName}<input data-pf="name" value="${esc(p.name)}"></label>
+      <label class="fld f-weight">${T.pWeight}<input inputmode="decimal" data-pf="boxWeight" value="${esc(p.boxWeight)}"></label>
+      <label class="fld f-plimit">${T.pLimit}<input inputmode="decimal" data-pf="palletLimit" value="${esc(p.palletLimit)}"></label>
+      <label class="fld f-space">${T.pSpace}<input inputmode="numeric" data-pf="maxBySpace" placeholder="${T.pSpaceHint}" value="${esc(p.maxBySpace)}"></label>
+      <div class="prod-max" id="pmax-${p.id}"></div>
+      <button class="ghost" data-del-product="${p.id}" title="Видалити товар">✕</button>
+      <div class="prod-err" id="perr-${p.id}"></div>
+    </div>`).join('');
+}
+
+function renderPositions() {
+  const opts = sel => `<option value="">${T.chooseProduct}</option>` +
+    state.products.map(p => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  const modes = m => Object.entries(T.modes).map(([k, v]) => `<option value="${k}" ${k === m ? 'selected' : ''}>${v}</option>`).join('');
+  $('positions').innerHTML = state.positions.map((pos, i) => `
+    <div class="pos" data-posid="${pos.id}" id="pos-${pos.id}">
+      <div class="pos-head"><span>${T.posN(i + 1)}</span>
+        <button class="ghost" data-del-pos="${pos.id}" title="Видалити позицію">✕</button></div>
+      <div class="pos-grid">
+        <label class="fld">${T.fClient}<input list="clients-list" data-posf="client" placeholder="${T.clientPh}" value="${esc(pos.client || '')}"></label>
+        <label class="fld">${T.fProduct}<select data-posf="productId">${opts(pos.productId)}</select></label>
+        <label class="fld">${T.fMode}<select data-posf="mode">${modes(pos.mode)}</select></label>
+        ${pos.mode === 'fill'
+          ? `<div></div>`
+          : `<label class="fld">${T.valueLabel[pos.mode]}<input inputmode="decimal" data-posf="value" value="${esc(pos.value)}"></label>`}
+      </div>
+      ${pos.mode === 'fill' ? `<div class="pos-note">${T.fillNote}</div>` : ''}
+      <div class="pos-res" id="pres-${pos.id}"></div>
+    </div>`).join('') + '<datalist id="clients-list"></datalist>';
+}
+
+function update() {
+  const R = compute(state);
+
+  // довідник
+  state.products.forEach(p => {
+    const pi = R.info[p.id];
+    $('pmax-' + p.id).innerHTML = pi.max ? T.pMax(pi.max, fmt(pi.max * pi.bw), pi.by) : '';
+    $('perr-' + p.id).textContent = pi.errors.join(' · ');
+  });
+
+  // позиції
+  R.results.forEach(r => {
+    const card = $('pos-' + r.id);
+    card.style.borderLeftColor = r.color;
+    // назви товарів у списках могли змінитися
+    card.querySelectorAll('select[data-posf="productId"] option').forEach(o => {
+      const p = state.products.find(x => String(x.id) === o.value);
+      if (p) o.textContent = p.name || '?';
+    });
+
+    let html = '';
+    if (r.empty) html = `<span class="muted">${T.enterValue}</span>`;
+    else if (r.active || (r.pos.mode === 'fill' && r.product && !r.errors.length)) {
+      html = `<b class="num">${fmt(r.boxes)}</b> ${plural(r.boxes, ['коробка', 'коробки', 'коробок'])} · ` +
+        `<b class="num">${fmt(r.kg)}</b> кг · <b class="num">${r.pallets}</b> ${plural(r.pallets, ['палета', 'палети', 'палет'])}`;
+      const det = T.palletsDetail(r.full, r.bpp, r.rem, fmt(r.remKg));
+      if (det) html += `<div class="detail">${det}</div>`;
+      if (r.kgRequested !== null) html += `<div class="detail">${T.fromKg(fmt(r.kgRequested), fmt(r.kg))}</div>`;
+    }
+    $('pres-' + r.id).innerHTML = html;
+  });
+
+  // підсумки
+  $('summary').innerHTML = `
+    <div class="card"><div class="lbl">${T.totBoxes}</div><div class="val num">${fmt(R.tot.boxes)}</div></div>
+    <div class="card"><div class="lbl">${T.totKg}</div><div class="val num">${fmt(R.tot.kg)}</div><div class="sub">${T.ofLimit(fmt(R.S.truckLimit))} кг</div></div>
+    <div class="card"><div class="lbl">${T.totPallets}</div><div class="val num">${R.tot.pallets}</div><div class="sub">${T.ofLimit(R.S.truckSlots)}</div></div>`;
+  const names = [...new Set(state.positions.map(x => String(x.client || '').trim()).filter(Boolean))];
+  $('clients-list').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
+  $('clients-sum').innerHTML = R.clientSum.length ? `<h3>${T.byClient}</h3>` + R.clientSum.map(c =>
+    `<div class="client-row"><span class="dot" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span>${T.clientLine(c.pallets, fmt(c.kg))}</span></div>`).join('') : '';
+  $('free').innerHTML = (R.freeKg >= 0 && R.freeSlots >= 0 ? T.free(fmt(R.freeKg), R.freeSlots) + ' ' : '') + R.limiter;
+
+  // перевірки
+  $('checks-body').innerHTML = R.messages.length
+    ? `<ul>${R.messages.map(m => `<li class="${m.level}">${esc(m.text)}</li>`).join('')}</ul>`
+    : `<span class="ok">✓ ${T.allOk}</span>`;
+
+  // палети
+  $('pallets').innerHTML = R.pallets.length ? `
+    <table><thead><tr><th>${T.thN}</th><th>${T.thClient}</th><th>${T.thProduct}</th><th class="r">${T.thBoxes}</th><th class="r">${T.thKg}</th><th>${T.thStatus}</th></tr></thead>
+    <tbody>${R.pallets.map(p => `<tr>
+      <td class="num">${p.n}</td>
+      <td><span class="dot" style="background:${p.r.color}"></span> ${esc(p.r.client || '—')}</td>
+      <td>${esc(p.r.product.name)}</td>
+      <td class="r num">${p.boxes}</td>
+      <td class="r num">${fmt(p.kg)}</td>
+      <td>${p.partial ? T.partial : T.full}${p.over ? ` · ${T.overweight}` : ''}${p.overSlots ? ` · ${T.overSlots}` : p.overTruck ? ` · ${T.overTruckKg}` : ''}</td>
+    </tr>`).join('')}</tbody></table>`
+    : `<span class="muted">${T.noPallets}</span>`;
+
+  renderTrailer(R);
+  save();
+}
+
+/* =========================================================
+   ВІЗУАЛІЗАЦІЯ ПРИЧЕПА (косокутна проєкція, вигляд збоку)
+   ========================================================= */
+function rgbOf(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function tone(hex, toWhite = 0, dark = 1) {
+  return 'rgb(' + rgbOf(hex).map(c => Math.round((c + (255 - c) * toWhite) * dark)).join(',') + ')';
+}
+
+/**
+ * Розставляє палети по місцях причепа. Місце: ряд = floor(i/3), смуга = i%3 (0 — ближня до нас).
+ * Товари займають місця підряд, як і раніше (група = товари однієї позиції, що йдуть підряд).
+ * Кожна неповна палета отримує ближню смугу в одному з рядів своєї групи; першими розставляються
+ * групи з найменшою кількістю рядів, щоб маленькі товари не опинилися за сусідами.
+ */
+function placeInTrailer(list) {
+  const n = list.length;
+  const group = [];
+  let g = -1;
+  list.forEach((p, k) => {
+    if (k === 0 || p.r.id !== list[k - 1].r.id) g++;
+    group.push(g);
+  });
+  const rows = Math.ceil(n / 3);
+  // скільки місць кожної групи в кожному ряду
+  const cap = Array.from({ length: rows }, () => new Map());
+  for (let k = 0; k < n; k++) {
+    const m = cap[Math.floor(k / 3)];
+    m.set(group[k], (m.get(group[k]) || 0) + 1);
+  }
+  const rowsOf = gg => cap.map((m, r) => m.has(gg) ? r : -1).filter(r => r >= 0);
+  const rowItems = Array.from({ length: rows }, () => []); // {p, near}
+  const nearTaken = new Array(rows).fill(false);
+  const use = (r, gg) => cap[r].set(gg, cap[r].get(gg) - 1);
+
+  // 1) неповні палети — на ближню смугу
+  const partials = list.map((p, k) => ({ p, k, g: group[k] })).filter(x => x.p.partial);
+  partials.sort((a, b) => rowsOf(a.g).length - rowsOf(b.g).length || a.k - b.k);
+  for (const x of partials) {
+    const own = Math.floor(x.k / 3);
+    const opts = rowsOf(x.g).filter(r => cap[r].get(x.g) > 0)
+      .sort((a, b) => (nearTaken[a] - nearTaken[b]) || Math.abs(a - own) - Math.abs(b - own) || a - b);
+    const r = opts[0];
+    use(r, x.g);
+    const near = !nearTaken[r];
+    nearTaken[r] = true;
+    rowItems[r].push({ p: x.p, near, partial: true });
+  }
+  // 2) повні палети — на решту місць своєї групи, по порядку
+  list.forEach((p, k) => {
+    if (p.partial) return;
+    const r = rowsOf(group[k]).find(rr => cap[rr].get(group[k]) > 0);
+    use(r, group[k]);
+    rowItems[r].push({ p, near: false, partial: false });
+  });
+  // 3) у кожному ряду: ближня смуга — обраній неповній, далі інші неповні, потім повні
+  const out = [];
+  rowItems.forEach((items, r) => {
+    items.sort((a, b) => (b.near - a.near) || (b.partial - a.partial));
+    items.forEach((it, lane) => out.push({ p: it.p, slot: r * 3 + lane }));
+  });
+  return out;
+}
+
+function renderTrailer(R) {
+  const S = R.S;
+  const s = 55;                                   // px на метр
+  const ang = 35 * Math.PI / 180, k = 0.75;       // глибина в проєкції
+  const cx = Math.cos(ang) * k * s, cy = Math.sin(ang) * k * s;
+  const slots = S.truckSlots, rows = Math.ceil(slots / 3);
+  const L = Math.max(13.6, rows * 1.2 + 0.4), H = 2.7, Z = 2.45, ground = -1.25;
+  const extra = Math.max(0, R.pallets.length - slots);
+  const extraDraw = Math.min(extra, 6), extraCols = Math.ceil(extraDraw / 3);
+  const ox = 20, topPad = 46;
+  const oy = topPad + H * s + Z * cy;
+  const W = ox + (L + (extraCols ? 0.9 + extraCols * 1.3 : 0.4)) * s + Z * cx + 20;
+  const Hh = oy - ground * s + 24;
+  const P = (x, y, z) => [ox + x * s + z * cx, oy - y * s - z * cy];
+  const pts = a => a.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+  const poly = (a, attr) => `<polygon points="${pts(a)}" ${attr}/>`;
+  const line = (a, b, attr) => `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" ${attr}/>`;
+  const overKg = R.tot.kg > S.truckLimit + EPS, overSl = R.pallets.length > slots;
+  const frame = overKg || overSl ? '#dc2626' : '#4b5563';
+
+  const cube = (x0, x1, y0, y1, z0, z1, f, t, sd, extraAttr = '') =>
+    poly([P(x0, y0, z0), P(x1, y0, z0), P(x1, y1, z0), P(x0, y1, z0)], `fill="${f}" stroke="rgba(0,0,0,.25)" stroke-width=".6" ${extraAttr}`) +
+    poly([P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)], `fill="${t}" stroke="rgba(0,0,0,.25)" stroke-width=".6"`) +
+    poly([P(x1, y0, z0), P(x1, y0, z1), P(x1, y1, z1), P(x1, y1, z0)], `fill="${sd}" stroke="rgba(0,0,0,.25)" stroke-width=".6"`);
+
+  const drawPallet = (p, x, yb, lane, withLabel) => {
+    const x0 = x + 0.03, x1 = x + 1.17, z0 = 0.03 + lane * 0.8, z1 = z0 + 0.74;
+    const hb = 0.144;
+    const h = Math.min(2.3, Math.max(0.08, p.kg / p.r.limit * 1.6));
+    const red = p.over || p.overSlots;
+    const hex = red ? '#dc2626' : p.r.color;
+    const w = 0;
+    let g = `<g><title>№${p.n} · ${esc(p.r.client || T.noClient)} · ${esc(p.r.product.name)}\n${p.boxes} ${T.boxesShort} · ${fmt(p.kg)} кг · ${p.partial ? T.partial : T.full}` +
+      `${p.over ? ' · ' + T.overweight : ''}${p.overSlots ? ' · ' + T.overSlots : p.overTruck ? ' · ' + T.overTruckKg : ''}</title>`;
+    g += cube(x0, x1, yb, yb + hb, z0, z1, '#b07d4f', '#c99a6b', '#8a5e36');
+    g += cube(x0, x1, yb + hb, yb + hb + h, z0, z1, tone(hex, w), tone(hex, w + (1 - w) * 0.3), tone(hex, w, 0.78));
+    if (p.partial) {
+      g += poly([P(x0, yb + hb, z0), P(x1, yb + hb, z0), P(x1, yb + hb + h, z0), P(x0, yb + hb + h, z0)],
+        'fill="none" stroke="#111827" stroke-width="1.6" stroke-dasharray="4 3"');
+    }
+    if (p.overTruck && !p.overSlots) {
+      g += poly([P(x0, yb + hb, z0), P(x1, yb + hb, z0), P(x1, yb + hb + h, z0), P(x0, yb + hb + h, z0)],
+        'fill="url(#hatch)" stroke="#dc2626" stroke-width="1.5"');
+    }
+    if (withLabel) {
+      const tall = h * s >= 28;
+      // висока палета — підпис на ній; низька — над нею
+      const c = tall ? P((x0 + x1) / 2, yb + hb + h / 2, z0) : P((x0 + x1) / 2, yb + hb + h, z0);
+      const col = tall && !red ? '#fff' : (red && tall ? '#fff' : '#1d2330');
+      const y1 = tall ? c[1] - 2 : c[1] - 16, y2 = tall ? c[1] + 10 : c[1] - 5;
+      const nm = p.r.label.length > 11 ? p.r.label.slice(0, 10) + '…' : p.r.label;
+      const halo = tall ? '' : ' stroke="#fff" stroke-width="3" paint-order="stroke"';
+      g += `<text x="${c[0].toFixed(1)}" y="${y1.toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="${col}"${halo}>${esc(nm)}</text>`;
+      g += `<text x="${c[0].toFixed(1)}" y="${y2.toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${col}"${halo}>${fmt(p.kg)} кг</text>`;
+    }
+    return g + '</g>';
+  };
+
+  let svg = `<svg viewBox="0 0 ${W.toFixed(0)} ${Hh.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif">
+    <defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="rgba(255,255,255,.15)"/><line x1="0" y1="0" x2="0" y2="7" stroke="#dc2626" stroke-width="3"/></pattern></defs>`;
+
+  // земля
+  const gy = P(0, ground, 0)[1];
+  svg += `<rect x="0" y="${gy.toFixed(1)}" width="${W.toFixed(0)}" height="4" fill="#d6dae1"/>`;
+  const axles = [L - 3.6, L - 2.3, L - 1.0];
+  // підлога + розмітка місць
+  svg += poly([P(0, 0, 0), P(L, 0, 0), P(L, 0, Z), P(0, 0, Z)], 'fill="#eef0f3" stroke="#c5cad3"');
+  for (let i = 0; i < slots; i++) {
+    const r = Math.floor(i / 3), lane = i % 3, x0 = 0.2 + r * 1.2 + 0.03, x1 = x0 + 1.14, z0 = 0.03 + lane * 0.8, z1 = z0 + 0.74;
+    svg += poly([P(x0, 0, z0), P(x1, 0, z0), P(x1, 0, z1), P(x0, 0, z1)], 'fill="none" stroke="#aab1bc" stroke-dasharray="3 3" stroke-width=".8"');
+  }
+  // дальні ребра кузова + передня стінка
+  svg += line(P(0, H, Z), P(L, H, Z), 'stroke="#c5cad3" stroke-width="1.2"');
+  svg += poly([P(0, 0, 0), P(0, 0, Z), P(0, H, Z), P(0, H, 0)], `fill="rgba(148,163,184,.22)" stroke="${frame}" stroke-width="1.5"`);
+
+  // палети всередині: дальній ряд → ближній, спереду → назад
+  const inside = R.pallets.filter(p => !p.overSlots);
+  const placed = placeInTrailer(inside);
+  for (let lane = 2; lane >= 0; lane--) {
+    placed.forEach(({ p, slot }) => {
+      if (slot % 3 !== lane) return;
+      svg += drawPallet(p, 0.2 + Math.floor(slot / 3) * 1.2, 0, lane, lane === 0);
+    });
+  }
+
+  // ближні елементи кузова: шасі, верхня рейка, стійки шторки, задня рама
+  svg += poly([P(0, 0, 0), P(L, 0, 0), P(L, -0.28, 0), P(0, -0.28, 0)], `fill="#374151"`);
+  svg += line(P(0, H, 0), P(L, H, 0), `stroke="${frame}" stroke-width="2.2"`);
+  svg += line(P(0, 0, 0), P(0, H, 0), `stroke="${frame}" stroke-width="2.2"`);
+  [L / 3, 2 * L / 3].forEach(xp => svg += line(P(xp, 0, 0), P(xp, H, 0), 'stroke="#9aa3af" stroke-width="1" stroke-dasharray="5 4"'));
+  svg += poly([P(L, 0, 0), P(L, 0, Z), P(L, H, Z), P(L, H, 0)], `fill="none" stroke="${frame}" stroke-width="4" stroke-linejoin="round"`);
+  // опорні ноги і шворінь
+  const lg0 = P(2.4, -0.28, 0.4), lg1 = P(2.4, ground + 0.06, 0.4);
+  svg += line(lg0, lg1, 'stroke="#4b5563" stroke-width="4"');
+  svg += `<rect x="${(lg1[0] - 9).toFixed(1)}" y="${lg1[1].toFixed(1)}" width="18" height="4" fill="#4b5563"/>`;
+  const kp = P(0.9, -0.28, 0);
+  svg += `<rect x="${(kp[0] - 3).toFixed(1)}" y="${kp[1].toFixed(1)}" width="6" height="10" fill="#4b5563"/>`;
+  // колеса (ближній бік) і бризковик
+  axles.forEach(xw => {
+    const c = P(xw, ground + 0.5, 0);
+    svg += `<circle cx="${c[0]}" cy="${c[1]}" r="${0.5 * s}" fill="#1f2937"/><circle cx="${c[0]}" cy="${c[1]}" r="${0.22 * s}" fill="#9ca3af"/>`;
+  });
+  const bump = P(L - 0.25, -0.28, 0);
+  svg += `<rect x="${bump[0].toFixed(1)}" y="${bump[1].toFixed(1)}" width="${(0.25 * s).toFixed(1)}" height="${(0.5 * s).toFixed(1)}" fill="#374151"/>`;
+
+  // палети, що не влазять, — на землі за причепом
+  if (extra) {
+    const outs = R.pallets.filter(p => p.overSlots).slice(0, extraDraw);
+    for (let lane = 2; lane >= 0; lane--) {
+      outs.forEach((p, j) => {
+        if (j % 3 !== lane) return;
+        svg += drawPallet(p, L + 0.9 + Math.floor(j / 3) * 1.3, ground, lane, lane === 0);
+      });
+    }
+    svg += `<text x="${(W - 10).toFixed(1)}" y="20" text-anchor="end" font-size="14" font-weight="700" fill="#dc2626">${T.trOutside(extra)}${extra > extraDraw ? ' (' + T.trMore(extra - extraDraw) + ')' : ''}</text>`;
+  }
+
+  // підписи
+  const fr = P(0, H, 0), rr = P(L, H, 0);
+  svg += `<text x="${fr[0]}" y="${(fr[1] - 8).toFixed(1)}" font-size="11" fill="#6b7280">${T.trFront}</text>`;
+  svg += `<text x="${rr[0]}" y="${(rr[1] - 8).toFixed(1)}" font-size="11" fill="#6b7280" text-anchor="end">${T.trRear}</text>`;
+  if (overKg) {
+    svg += `<text x="${ox}" y="20" font-size="14" font-weight="700" fill="#dc2626">${T.trOverKg(fmt(R.tot.kg - S.truckLimit))}</text>`;
+  }
+  svg += '</svg>';
+  $('trailer').innerHTML = svg;
+
+  // смуги ваги і місць
+  const bar = (lbl, val, max, unit) => {
+    const pct = Math.min(100, val / max * 100), over = val > max + EPS;
+    return `<div class="bar ${over ? 'over' : ''}"><div class="bar-lbl">${lbl}: <b class="num">${fmt(val)} / ${fmt(max)}${unit}</b></div>
+      <div class="track"><div class="fill" style="width:${pct.toFixed(1)}%"></div></div></div>`;
+  };
+  $('trailer-bars').innerHTML = bar(T.barKg, R.tot.kg, S.truckLimit, ' кг') + bar(T.barSlots, R.pallets.length, slots, '');
+
+  // легенда
+  const used = [...new Map(R.pallets.map(p => [p.r.label.toLowerCase(), { name: p.r.label, color: p.r.color }])).values()];
+  $('trailer-legend').innerHTML =
+    used.map(p => `<span><i class="sw" style="background:${p.color}"></i>${esc(p.name)}</span>`).join('') +
+    `<span><i class="sw" style="background:#fff;border:1.5px dashed #111827"></i>${T.lgPartial}</span>` +
+    `<span><i class="sw" style="background:#dc2626"></i>${T.lgOver}</span>` +
+    `<span><i class="sw" style="background:repeating-linear-gradient(45deg,#dc2626 0 3px,#fff 3px 6px)"></i>${T.lgOverKg}</span>` +
+    `<span><i class="sw" style="background:#fff;border:1px dashed #aab1bc"></i>${T.lgFree}</span>`;
+}
+
+function renderAll() { renderSettings(); renderProducts(); renderPositions(); update(); }
+
+/* =========================================================
+   ПОДІЇ
+   ========================================================= */
+$('btn-settings').onclick = () => { const s = $('settings'); s.hidden = !s.hidden; };
+$('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
+const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
+$('btn-clear-no').onclick = hideConfirm;
+$('btn-clear-yes').onclick = () => {
+  const first = state.products[0];
+  state.positions = [{ id: newId(), productId: first ? first.id : null, mode: 'kg', value: '', bpp: '' }];
+  hideConfirm(); renderPositions(); update();
+};
+
+$('settings-grid').addEventListener('input', e => {
+  const k = e.target.dataset.setting; if (!k) return;
+  state.settings[k] = e.target.value; update();
+});
+
+$('products').addEventListener('input', e => {
+  const f = e.target.dataset.pf; if (!f) return;
+  const id = +e.target.closest('[data-pid]').dataset.pid;
+  const p = state.products.find(x => x.id === id);
+  p[f] = e.target.value; update();
+});
+$('products').addEventListener('click', e => {
+  const id = e.target.dataset.delProduct; if (!id) return;
+  state.products = state.products.filter(p => p.id !== +id);
+  state.positions.forEach(pos => { if (pos.productId === +id) pos.productId = null; });
+  renderProducts(); renderPositions(); update();
+});
+$('btn-add-product').onclick = () => {
+  const color = COLORS[state.colorIdx++ % COLORS.length];
+  state.products.push({ id: newId(), name: T.defaultName(state.products.length + 1), boxWeight: '', maxBySpace: '', palletLimit: DEFAULT_PALLET_LIMIT, color });
+  renderProducts(); renderPositions(); update();
+};
+
+$('positions').addEventListener('input', e => {
+  const f = e.target.dataset.posf; if (!f || e.target.tagName === 'SELECT') return;
+  const id = +e.target.closest('[data-posid]').dataset.posid;
+  state.positions.find(x => x.id === id)[f] = e.target.value; update();
+});
+$('positions').addEventListener('change', e => {
+  const f = e.target.dataset.posf; if (!f || e.target.tagName !== 'SELECT') return;
+  const id = +e.target.closest('[data-posid]').dataset.posid;
+  const pos = state.positions.find(x => x.id === id);
+  if (f === 'productId') pos.productId = e.target.value ? +e.target.value : null;
+  else { pos.mode = e.target.value; pos.value = ''; }
+  renderPositions(); update();
+});
+$('positions').addEventListener('click', e => {
+  const id = e.target.dataset.delPos; if (!id) return;
+  state.positions = state.positions.filter(p => p.id !== +id);
+  renderPositions(); update();
+});
+$('btn-add-position').onclick = () => {
+  const last = state.positions[state.positions.length - 1];
+  const used = new Set(state.positions.map(p => p.productId));
+  const next = state.products.find(p => !used.has(p.id)) || state.products[0];
+  state.positions.push({ id: newId(), client: last ? (last.client || '') : '', productId: next ? next.id : null, mode: 'kg', value: '', bpp: '' });
+  renderPositions(); update();
+};
+
+/* =========================================================
+   ЕКСПОРТ У PDF (pdfmake, шрифт Roboto з кирилицею)
+   ========================================================= */
+const PDFMAKE_URL = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/pdfmake.min.js';
+const VFS_URL = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/vfs_fonts.js';
+
+let dlPromise = null;
+function getDownloads() {
+  if (!dlPromise && window.claude && typeof window.claude.use === 'function') {
+    dlPromise = window.claude.use('downloads').catch(() => null);
+  }
+  return dlPromise || Promise.resolve(null);
+}
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = res; el.onerror = () => rej(new Error('load ' + src));
+    document.head.appendChild(el);
+  });
+}
+async function ensurePdfMake() {
+  if (window.pdfMake && window.pdfMake.vfs) return;
+  if (!window.pdfMake) await loadScript(PDFMAKE_URL);
+  if (!window.pdfMake.vfs) await loadScript(VFS_URL);
+}
+async function trailerPng() {
+  try {
+    const el = document.querySelector('#trailer svg');
+    if (!el) return null;
+    const vb = el.viewBox.baseVal, k = 2;
+    const xml = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml); });
+    const c = document.createElement('canvas');
+    c.width = vb.width * k; c.height = vb.height * k;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return { data: c.toDataURL('image/png'), w: vb.width, h: vb.height };
+  } catch (e) { return null; }
+}
+const plain = html => String(html).replace(/<[^>]+>/g, '');
+
+async function buildPdfDoc() {
+  const R = compute(state);
+  const now = new Date();
+  const img = await trailerPng();
+  const W = 531;
+  const grid = { hLineColor: () => '#e3e6eb', vLineColor: () => '#e3e6eb', hLineWidth: () => .6, vLineWidth: () => .6 };
+  const box = (lbl, val, red) => ({
+    table: { widths: ['*'], body: [[{ stack: [{ text: lbl, fontSize: 8, color: '#6b7280' }, { text: val, fontSize: 14, bold: true, color: red ? '#c62828' : '#1d2330' }], margin: [4, 3, 4, 3] }]] },
+    layout: grid,
+  });
+  const th = t => ({ text: t, bold: true, fontSize: 8, color: '#6b7280' });
+  const overKg = R.tot.kg > R.S.truckLimit + EPS, overSl = R.tot.pallets > R.S.truckSlots;
+
+  const content = [
+    { text: T.pdf.title, fontSize: 17, bold: true },
+    { text: now.toLocaleString('uk-UA', { dateStyle: 'long', timeStyle: 'short' }), color: '#6b7280', margin: [0, 2, 0, 10] },
+    { columns: [
+        box(T.totBoxes, fmt(R.tot.boxes)),
+        box(T.totKg, `${fmt(R.tot.kg)} / ${fmt(R.S.truckLimit)}`, overKg),
+        box(T.totPallets, `${R.tot.pallets} / ${R.S.truckSlots}`, overSl),
+      ], columnGap: 8 },
+    { text: (R.freeKg >= 0 && R.freeSlots >= 0 ? plain(T.free(fmt(R.freeKg), R.freeSlots)) + ' ' : '') + R.limiter, margin: [0, 6, 0, 0] },
+    { text: T.checks, fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
+    R.messages.length
+      ? { ul: R.messages.map(m => ({ text: m.text, color: m.level === 'err' ? '#c62828' : '#b45309' })) }
+      : { text: T.allOk, color: '#15803d' },
+  ];
+  if (img) {
+    content.push({ text: T.trailer, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
+    content.push({ image: img.data, width: W });
+  }
+
+  // позиції
+  const posRows = R.results.filter(r => r.product).map(r => [
+    { text: String(r.n) },
+    { text: r.product.name },
+    { text: T.modes[r.pos.mode] + (r.kgRequested !== null ? ` (${fmt(r.kgRequested)} кг)` : r.pos.mode !== 'fill' && r.pos.value ? `: ${r.pos.value}` : '') },
+    { text: r.active ? fmt(r.boxes) : '—', alignment: 'right' },
+    { text: r.active ? fmt(r.kg) : '—', alignment: 'right' },
+    { text: r.active ? `${r.pallets} (${T.pdf.palletsShort(r.full, r.rem)})` : '—' },
+    { text: r.bpp ? String(r.bpp) : '—', alignment: 'right' },
+  ]);
+  if (posRows.length) {
+    content.push({ text: T.pdf.positions, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
+    content.push({
+      table: { headerRows: 1, widths: [16, '*', 110, 46, 52, 100, 46],
+        body: [[th(T.thN), th(T.thProduct), th(T.pdf.thMode), th(T.thBoxes), th(T.thKg), th(T.pdf.thPallets), th(T.pdf.thBpp)], ...posRows] },
+      layout: 'lightHorizontalLines',
+    });
+  }
+
+  // палети
+  if (R.pallets.length) {
+    content.push({ text: T.pallets, fontSize: 12, bold: true, margin: [0, 12, 0, 4] });
+    content.push({
+      table: { headerRows: 1, widths: [20, 8, '*', 50, 60, 170],
+        body: [[th(T.thN), th(''), th(T.thProduct), th(T.thBoxes), th(T.thKg), th(T.thStatus)],
+          ...R.pallets.map(p => {
+            const bad = p.over || p.overSlots || p.overTruck;
+            const fill = bad ? '#fdecec' : null;
+            const status = (p.partial ? T.partial : T.full) + (p.over ? ' · ' + T.overweight : '') +
+              (p.overSlots ? ' · ' + T.overSlots : p.overTruck ? ' · ' + T.overTruckKg : '');
+            return [
+              { text: String(p.n), fillColor: fill },
+              { text: '', fillColor: p.r.color },
+              { text: (p.r.client ? p.r.client + ' · ' : '') + p.r.product.name, fillColor: fill },
+              { text: String(p.boxes), alignment: 'right', fillColor: fill },
+              { text: fmt(p.kg), alignment: 'right', fillColor: fill },
+              { text: status, fillColor: fill, color: bad ? '#c62828' : '#1d2330' },
+            ];
+          })] },
+      layout: 'lightHorizontalLines',
+    });
+  }
+
+  return {
+    pageSize: 'A4', pageMargins: [32, 32, 32, 36],
+    defaultStyle: { font: 'Roboto', fontSize: 9, lineHeight: 1.15 },
+    footer: (cur, total) => ({ text: `${cur} / ${total}`, alignment: 'right', fontSize: 8, color: '#9ca3af', margin: [0, 10, 32, 0] }),
+    content,
+  };
+}
+
+function setPdfStatus(text, isErr) {
+  const el = $('pdf-status');
+  el.textContent = text || '';
+  el.classList.toggle('err', !!isErr);
+}
+
+$('btn-pdf').onclick = async () => {
+  const btn = $('btn-pdf');
+  btn.disabled = true;
+  setPdfStatus(T.pdf.preparing);
+  try {
+    await ensurePdfMake();
+    const dd = await buildPdfDoc();
+    const blob = await new Promise((res, rej) => { try { window.pdfMake.createPdf(dd).getBlob(res); } catch (e) { rej(e); } });
+    const d = new Date(), z = n => String(n).padStart(2, '0');
+    const name = T.pdf.filename(`${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}-${z(d.getMinutes())}`);
+    const dl = await getDownloads();
+    if (dl) {
+      await dl.save({ filename: name, data: blob });
+    } else if (window.claude) {
+      // сторінка на claude.ai, але збереження файлів для цього глядача вимкнене
+      setPdfStatus(T.pdf.noAccess, true);
+      return;
+    } else {
+      // сторінка відкрита як окремий файл — звичайне завантаження
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }
+    setPdfStatus(T.pdf.saved);
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'declined') setPdfStatus(T.pdf.declined);
+    else if (code === 'rate_limited') setPdfStatus(T.pdf.busy, true);
+    else if (['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(code)) setPdfStatus(T.pdf.noAccess, true);
+    else { setPdfStatus(T.pdf.failed, true); console.error(e); }
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+renderStatic();
+renderAll();
+
+</script>
+</body>
+</html>
