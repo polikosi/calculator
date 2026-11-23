@@ -145,10 +145,30 @@
   .legend span{display:inline-flex;align-items:center;gap:5px}
   .sw{width:14px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
 
+  /* navigation */
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;background:#e9ecf1;padding:4px;border-radius:10px}
+  .tabs a{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:7px;color:var(--text);text-decoration:none;font-weight:500}
+  .tabs a:hover{background:#dde2ea}
+  .tabs a.on{background:#fff;color:var(--accent-d);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .view[hidden]{display:none!important}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .toolbar .grow{flex:1}
+  .combo{position:relative;flex:0 1 400px;min-width:240px}
+  .combo input{padding-left:34px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235b6472' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+  .combo-list{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:440px;overflow:auto;padding:6px}
+  .combo-list[hidden]{display:none}
+  .combo-list .grp{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 8px 4px}
+  .combo-list .opt{display:block;width:100%;text-align:left;border:none;background:none;border-radius:7px;padding:7px 8px;min-height:0;cursor:pointer}
+  .combo-list .opt:hover,.combo-list .opt.act{background:var(--accent-soft)}
+  .combo-list .opt b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .combo-list .opt span{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .combo-list .none{padding:8px;font-size:13px;color:var(--muted)}
+  .save-pop{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:#fff;border:1px solid var(--accent);border-radius:var(--radius);padding:12px 16px}
+  .save-pop[hidden]{display:none}
+  #save-hint{flex-basis:100%}
+
   /* templates + tripHistory */
   .tpl-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
-  .tpl-save{display:flex;gap:8px;margin-bottom:10px}
-  .tpl-save input{flex:1}
   .tpl-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
   .tpl-row:first-child{border-top:none}
   .tpl-row .info{flex:1;min-width:0}
@@ -188,35 +208,24 @@
 <div class="wrap">
   <header>
     <h1 id="t-title"></h1>
-    <div class="actions">
-      <span id="pdf-status"></span>
-      <button class="primary" id="btn-pdf"></button>
-      <button id="btn-copy-to-top"></button>
-      <button id="btn-templates"></button>
-      <button id="btn-catalog"></button>
-      <button id="btn-settings"></button>
-      <button id="btn-clear"></button>
-      <span class="confirm" id="clear-confirm">
-        <span id="t-clear-q"></span>
-        <button class="primary" id="btn-clear-yes"></button>
-        <button id="btn-clear-no"></button>
-      </span>
-    </div>
+    <nav class="tabs" aria-label="Розділи">
+      <a href="#" data-view="trip" id="tab-trip"></a>
+      <a href="#shablony" data-view="templates" id="tab-templates"></a>
+      <a href="#tovary" data-view="catalog" id="tab-catalog"></a>
+      <a href="#nalashtuvannia" data-view="settings" id="tab-settings"></a>
+    </nav>
   </header>
 
-  <section id="settings" hidden>
+  <section id="settings" class="view" hidden>
     <div class="sec-head"><h2 id="t-settings"></h2></div>
     <div class="settings-grid" id="settings-grid"></div>
   </section>
 
-  <section id="templates" hidden>
+  <section id="templates" class="view" hidden>
     <div class="tpl-cols">
       <div>
         <div class="sec-head"><h2 id="t-tpl"></h2><span class="sub" id="t-tpl-sub"></span></div>
-        <div class="tpl-save">
-          <input id="tpl-name" aria-label="Назва шаблону">
-          <button class="primary" id="btn-tpl-save"></button>
-        </div>
+        <p class="small muted" style="margin:-4px 0 10px" id="t-tpl-hint"></p>
         <div id="tpl-list"></div>
         <div class="actions" style="margin-top:10px">
           <button id="btn-tpl-export"></button>
@@ -232,11 +241,36 @@
     </div>
   </section>
 
-  <section id="catalog" hidden>
+  <section id="catalog" class="view" hidden>
     <div class="sec-head"><h2 id="t-products"></h2><span class="sub" id="t-products-sub"></span></div>
     <div id="products"></div>
     <button class="add" id="btn-add-product" style="margin-top:10px"></button>
   </section>
+
+  <div id="view-trip" class="view" style="display:flex;flex-direction:column;gap:16px">
+  <div class="toolbar">
+    <div class="combo" id="combo">
+      <input id="tpl-search" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="combo-list" aria-label="Почати з шаблону або минулого рейсу">
+      <div class="combo-list" id="combo-list" role="listbox" hidden></div>
+    </div>
+    <span class="grow"></span>
+    <span id="pdf-status"></span>
+    <button class="primary" id="btn-pdf"></button>
+    <button id="btn-copy-to-top"></button>
+    <button id="btn-save-tpl"></button>
+    <button id="btn-clear"></button>
+    <span class="confirm" id="clear-confirm">
+      <span id="t-clear-q"></span>
+      <button class="primary" id="btn-clear-yes"></button>
+      <button id="btn-clear-no"></button>
+    </span>
+  </div>
+  <div class="save-pop" id="save-pop" hidden>
+    <label class="fld" style="flex:1"><span id="t-save-lbl"></span><input id="save-name" autocomplete="off"></label>
+    <button class="primary" id="save-ok"></button>
+    <button id="save-cancel"></button>
+    <span class="small muted" id="save-hint"></span>
+  </div>
 
   <div class="layout">
     <main class="col-main">
@@ -276,6 +310,7 @@
       <span id="to-status"></span><button id="btn-copy-to"></button></div>
     <div class="to-box" id="to"></div>
   </section>
+  </div>
 </div>
 
 <script>
@@ -359,15 +394,23 @@ const T = {
     pal: 'pal.', kg: 'kg',
   },
 
+  nav: { trip: 'Рейс', templates: 'Шаблони та історія', catalog: 'Довідник товарів', settings: 'Налаштування' },
   tpl: {
     btn: 'Шаблони',
+    searchPh: 'Почати з шаблону або минулого рейсу…',
+    saveBtn: 'Зберегти як шаблон', nameLbl: 'Назва шаблону', ok: 'Зберегти', okOver: 'Перезаписати', cancel: 'Скасувати',
+    nameHint: 'Залиште порожнім — назва буде з імен клієнтів.',
+    existsHint: 'Шаблон з такою назвою вже є — його буде перезаписано.',
+    grpTpl: 'Шаблони', grpTplRecent: 'Останні шаблони', grpHist: 'Останні рейси',
+    noMatch: 'Нічого не знайдено',
+    manageHint: 'Новий шаблон зберігається на сторінці «Рейс» кнопкою «Зберегти як шаблон».',
     title: 'Шаблони', sub: 'зберігаються в цьому браузері',
     namePh: 'Назва шаблону, напр. «Вівторок — Угорщина»',
     save: 'Зберегти поточний рейс',
     saved: name => `Шаблон «${name}» збережено`,
     overwritten: name => `Шаблон «${name}» оновлено`,
     defaultName: () => `Шаблон ${new Date().toLocaleDateString('uk-UA')}`,
-    empty: 'Шаблонів ще немає. Заповніть рейс і збережіть його як шаблон.',
+    empty: 'Шаблонів ще немає. Заповніть рейс і натисніть «Зберегти як шаблон».',
     open: 'Відкрити', overwrite: 'Перезаписати', del: 'Видалити', sure: 'Точно?',
     opened: name => `Відкрито «${name}». Вкажіть дату й час завантаження.`,
     meta: (n, pal, kg, d) => `${n} ${plural(n, ['клієнт', 'клієнти', 'клієнтів'])} · ${pal} пал. · ${kg} кг · збережено ${d}`,
@@ -605,13 +648,63 @@ function renderHistory() {
     </div>`;
   }).join('') : `<div class="tpl-empty">${T.hist.empty}</div>`;
 }
-function saveTemplate() {
-  const name = $('tpl-name').value.trim() || T.tpl.defaultName();
+/** Назва за замовчуванням — з імен клієнтів. */
+function suggestName() {
+  const names = state.clients.map(c => String(c.name || '').trim()).filter(Boolean);
+  if (!names.length) return T.tpl.defaultName();
+  return names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3}` : '');
+}
+const findTpl = name => state.templates.find(t => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+/** Зберегти поточний рейс як шаблон (існуючий з такою назвою — перезаписати). */
+function saveTemplate(name) {
+  name = (name || '').trim() || suggestName();
   const snap = snapshot();
   delete snap.trip.loadDate; delete snap.trip.loadTime;
-  state.templates.unshift({ id: newId(), name, savedAt: new Date().toISOString(), ...snap, summary: summaryOf({ ...snap, trip: { ...emptyTrip(), ...snap.trip } }) });
-  $('tpl-name').value = '';
-  renderTemplates(); save(); tplStatus(T.tpl.saved(name));
+  const data = { savedAt: new Date().toISOString(), lastUsed: new Date().toISOString(), ...snap, summary: summaryOf({ ...snap, trip: { ...emptyTrip(), ...snap.trip } }) };
+  const old = findTpl(name);
+  if (old) Object.assign(old, data);
+  else state.templates.unshift({ id: newId(), name, ...data });
+  save();
+  if (!$('templates').hidden) renderTemplates();
+  return { name, overwritten: !!old };
+}
+
+/* ---- пошук шаблонів / минулих рейсів у полі «Почати з…» ---- */
+let comboItems = [], comboAct = -1;
+function renderCombo() {
+  const q = $('tpl-search').value.trim().toLowerCase();
+  const tpls = state.templates.slice()
+    .sort((a, b) => String(b.lastUsed || b.savedAt).localeCompare(String(a.lastUsed || a.savedAt)))
+    .filter(t => !q || t.name.toLowerCase().includes(q) || t.clients.some(c => String(c.name || '').toLowerCase().includes(q)))
+    .slice(0, q ? 10 : 6);
+  const hist = tripHistory
+    .filter(h => !q || h.summary.names.join(' ').toLowerCase().includes(q) || fmtDate(h.trip.loadDate).includes(q) || String(h.trip.loadAddress || '').toLowerCase().includes(q))
+    .slice(0, 5);
+  comboItems = [...tpls.map(t => ({ kind: 'tpl', ref: t })), ...hist.map(h => ({ kind: 'hist', ref: h }))];
+  comboAct = comboItems.length ? 0 : -1;
+  let html = '', i = 0;
+  const opt = (title, meta) => `<button type="button" class="opt ${i === comboAct ? 'act' : ''}" role="option" data-i="${i++}"><b>${esc(title)}</b><span>${esc(meta)}</span></button>`;
+  if (tpls.length) {
+    html += `<div class="grp">${q ? T.tpl.grpTpl : T.tpl.grpTplRecent}</div>`;
+    tpls.forEach(t => { const sm = t.summary || summaryOf(t); html += opt(t.name, `${sm.names.join(', ')} · ${sm.pallets} пал. · ${fmt(sm.kg)} кг`); });
+  }
+  if (hist.length) {
+    html += `<div class="grp">${T.tpl.grpHist}</div>`;
+    hist.forEach(h => html += opt(`${[fmtDate(h.trip.loadDate), h.trip.loadTime].filter(Boolean).join(', ') || T.hist.noDate} · ${h.summary.names.join(', ') || '—'}`,
+      `${h.summary.pallets} пал. · ${fmt(h.summary.kg)} кг · ${h.trip.loadAddress || ''}`));
+  }
+  if (!comboItems.length) html = `<div class="none">${state.templates.length || tripHistory.length ? T.tpl.noMatch : T.tpl.empty}</div>`;
+  $('combo-list').innerHTML = html;
+  $('combo-list').hidden = false;
+  $('tpl-search').setAttribute('aria-expanded', 'true');
+}
+function closeCombo() { $('combo-list').hidden = true; $('tpl-search').setAttribute('aria-expanded', 'false'); }
+function pickCombo(i) {
+  const it = comboItems[i]; if (!it) return;
+  if (it.kind === 'tpl') { it.ref.lastUsed = new Date().toISOString(); loadSnapshot(it.ref, false); }
+  else loadSnapshot(it.ref, true);
+  $('tpl-search').value = ''; closeCombo(); save();
+  setPdfStatus(it.kind === 'tpl' ? T.tpl.opened(it.ref.name) : T.hist.opened);
 }
 function exportTemplates() {
   if (!state.templates.length) { tplStatus(T.tpl.nothing, true); return; }
@@ -880,10 +973,12 @@ function renderStatic() {
   const txt = (id, t) => { $(id).textContent = t; };
   txt('t-title', T.title); document.title = T.title;
   txt('btn-pdf', T.pdf.btn); txt('btn-copy-to-top', T.to.copy); txt('btn-copy-to', T.to.copy);
-  txt('btn-catalog', T.catalogBtn); txt('btn-templates', T.tpl.btn);
-  txt('t-tpl', T.tpl.title); txt('t-tpl-sub', T.tpl.sub); txt('btn-tpl-save', T.tpl.save);
+  Object.entries(T.nav).forEach(([k, v]) => txt('tab-' + k, v));
+  txt('t-tpl', T.tpl.title); txt('t-tpl-sub', T.tpl.sub); txt('t-tpl-hint', T.tpl.manageHint);
   txt('btn-tpl-export', T.tpl.export); txt('t-tpl-import', T.tpl.import); txt('t-hist', T.hist.title);
-  $('tpl-name').placeholder = T.tpl.namePh; $('hist-search').placeholder = T.hist.searchPh; txt('btn-settings', T.settingsBtn); txt('btn-clear', T.clearBtn);
+  txt('btn-save-tpl', T.tpl.saveBtn); txt('t-save-lbl', T.tpl.nameLbl); txt('save-ok', T.tpl.ok); txt('save-cancel', T.tpl.cancel);
+  $('save-name').placeholder = T.tpl.namePh; $('hist-search').placeholder = T.hist.searchPh; $('tpl-search').placeholder = T.tpl.searchPh;
+  txt('btn-clear', T.clearBtn);
   txt('t-clear-q', T.clearQ); txt('btn-clear-yes', T.yes); txt('btn-clear-no', T.no);
   txt('t-settings', T.settings); txt('t-products', T.products); txt('t-products-sub', T.productsSub);
   txt('btn-add-product', T.addProduct);
@@ -1318,17 +1413,67 @@ function renderAll() { renderSettings(); renderProducts(); renderTrip(); renderC
 /* =========================================================
    ПОДІЇ
    ========================================================= */
-function togglePanel(btnId, panelId) {
-  const p = $(panelId), b = $(btnId);
-  p.hidden = !p.hidden;
-  b.classList.toggle('on', !p.hidden);
-  b.setAttribute('aria-pressed', String(!p.hidden));
+/* ---- розділи (вкладки) ---- */
+const VIEWS = { trip: 'view-trip', templates: 'templates', catalog: 'catalog', settings: 'settings' };
+const HASH = { '': 'trip', '#shablony': 'templates', '#tovary': 'catalog', '#nalashtuvannia': 'settings' };
+function showView(v, scroll = true) {
+  if (!VIEWS[v]) v = 'trip';
+  Object.entries(VIEWS).forEach(([k, id]) => { $(id).hidden = k !== v; });
+  document.querySelectorAll('.tabs a').forEach(a => {
+    const on = a.dataset.view === v;
+    a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  if (v === 'templates') { renderTemplates(); renderHistory(); }
+  const want = Object.keys(HASH).find(h => HASH[h] === v) || '';
+  if ((location.hash || '') !== want) history.replaceState(null, '', want || location.pathname + location.search);
+  if (scroll) window.scrollTo(0, 0);
 }
-$('btn-settings').onclick = () => togglePanel('btn-settings', 'settings');
-$('btn-catalog').onclick = () => togglePanel('btn-catalog', 'catalog');
-$('btn-templates').onclick = () => { togglePanel('btn-templates', 'templates'); if (!$('templates').hidden) { renderTemplates(); renderHistory(); } };
-$('btn-tpl-save').onclick = saveTemplate;
-$('tpl-name').addEventListener('keydown', e => { if (e.key === 'Enter') saveTemplate(); });
+document.querySelector('.tabs').addEventListener('click', e => {
+  const a = e.target.closest('a[data-view]'); if (!a) return;
+  e.preventDefault(); showView(a.dataset.view);
+});
+window.addEventListener('hashchange', () => showView(HASH[location.hash] || 'trip'));
+
+/* ---- «Зберегти як шаблон» ---- */
+function updateSaveHint() {
+  const nm = $('save-name').value.trim();
+  const exists = nm && findTpl(nm);
+  $('save-ok').textContent = exists ? T.tpl.okOver : T.tpl.ok;
+  $('save-hint').textContent = exists ? T.tpl.existsHint : T.tpl.nameHint;
+}
+$('btn-save-tpl').onclick = () => {
+  const pop = $('save-pop');
+  pop.hidden = !pop.hidden;
+  if (!pop.hidden) { $('save-name').value = ''; $('save-name').placeholder = suggestName(); updateSaveHint(); $('save-name').focus(); }
+};
+$('save-name').addEventListener('input', updateSaveHint);
+const doSave = () => {
+  const r = saveTemplate($('save-name').value);
+  $('save-pop').hidden = true;
+  setPdfStatus(r.overwritten ? T.tpl.overwritten(r.name) : T.tpl.saved(r.name));
+};
+$('save-ok').onclick = doSave;
+$('save-cancel').onclick = () => { $('save-pop').hidden = true; };
+$('save-name').addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') $('save-pop').hidden = true; });
+
+/* ---- пошук шаблонів ---- */
+$('tpl-search').addEventListener('focus', renderCombo);
+$('tpl-search').addEventListener('input', renderCombo);
+$('tpl-search').addEventListener('keydown', e => {
+  if ($('combo-list').hidden && (e.key === 'ArrowDown' || e.key === 'Enter')) { renderCombo(); return; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!comboItems.length) return;
+    comboAct = (comboAct + (e.key === 'ArrowDown' ? 1 : -1) + comboItems.length) % comboItems.length;
+    $('combo-list').querySelectorAll('.opt').forEach((o, i) => o.classList.toggle('act', i === comboAct));
+    const act = $('combo-list').querySelector('.opt.act'); if (act) act.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') { e.preventDefault(); pickCombo(comboAct); }
+  else if (e.key === 'Escape') closeCombo();
+});
+$('combo-list').addEventListener('mousedown', e => e.preventDefault());
+$('combo-list').addEventListener('click', e => { const o = e.target.closest('.opt'); if (o) pickCombo(+o.dataset.i); });
+$('tpl-search').addEventListener('blur', () => setTimeout(closeCombo, 100));
 $('btn-tpl-export').onclick = exportTemplates;
 $('tpl-import').addEventListener('change', e => { const f = e.target.files[0]; if (f) importTemplates(f); e.target.value = ''; });
 $('hist-search').addEventListener('input', renderHistory);
@@ -1340,7 +1485,7 @@ $('tpl-list').addEventListener('input', e => {
 $('tpl-list').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const tp = state.templates.find(t => t.id === +b.closest('[data-tid]').dataset.tid);
-  if (b.hasAttribute('data-tpl-open')) { loadSnapshot(tp, false); tplStatus(T.tpl.opened(tp.name)); }
+  if (b.hasAttribute('data-tpl-open')) { tp.lastUsed = new Date().toISOString(); loadSnapshot(tp, false); showView('trip'); setPdfStatus(T.tpl.opened(tp.name)); }
   else if (b.hasAttribute('data-tpl-over')) {
     const snap = snapshot(); delete snap.trip.loadDate; delete snap.trip.loadTime;
     Object.assign(tp, snap, { savedAt: new Date().toISOString(), summary: summaryOf({ ...snap, trip: { ...emptyTrip(), ...snap.trip } }) });
@@ -1353,7 +1498,7 @@ $('tpl-list').addEventListener('click', e => {
 $('hist-list').addEventListener('click', e => {
   const b = e.target.closest('[data-hist-open]'); if (!b) return;
   const h = tripHistory.find(x => String(x.tripId) === b.closest('[data-hid]').dataset.hid);
-  if (h) { loadSnapshot(h, true); tplStatus(T.hist.opened); }
+  if (h) { loadSnapshot(h, true); showView('trip'); setPdfStatus(T.hist.opened); }
 });
 $('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
 const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
@@ -1602,6 +1747,7 @@ $('btn-pdf').onclick = async () => {
 
 renderStatic();
 renderAll();
+showView(HASH[location.hash] || 'trip', false);
 </script>
 </body>
 </html>
