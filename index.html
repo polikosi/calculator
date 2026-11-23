@@ -63,6 +63,12 @@
   .client-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
   .client-row:first-of-type{border-top:none}
   .client-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .client-block{border-top:1px solid var(--line);padding:4px 0 6px}
+  .client-block:first-of-type{border-top:none}
+  .client-block .client-row{border-top:none}
+  .client-prod{display:flex;gap:8px;padding:2px 0 2px 20px;font-size:13px;color:var(--muted)}
+  .client-prod .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .client-prod b{color:var(--text);font-weight:600}
   .free{margin-top:10px;padding:10px;border-radius:8px;background:var(--accent-soft);font-size:14px}
 
   /* checks */
@@ -203,6 +209,7 @@ const T = {
   summary: 'Підсумки',
   byClient: 'По клієнтах',
   noClient: 'Без клієнта',
+  prodLine: (kg, pal) => `<b class="num">${kg}</b> кг <span class="num">· ${pal} пал.</span>`,
   clientLine: (pal, kg) => `<b class="num">${pal}</b> ${plural(pal, ['палета','палети','палет'])} · <b class="num">${kg}</b> кг`,
   totBoxes: 'Всього коробок', totKg: 'Всього кг', totPallets: 'Всього палет',
   ofLimit: l => `з ${l}`,
@@ -469,7 +476,7 @@ function compute(st) {
   results.forEach(r => {
     if (!r.client) return;
     const key = r.client.toLowerCase();
-    if (!clients.has(key)) clients.set(key, { name: r.client, color: COLORS[clients.size % COLORS.length], pallets: 0, kg: 0 });
+    if (!clients.has(key)) clients.set(key, { name: r.client, color: COLORS[clients.size % COLORS.length], pallets: 0, kg: 0, products: new Map() });
   });
   results.forEach(r => {
     r.clientInfo = r.client ? clients.get(r.client.toLowerCase()) : null;
@@ -494,10 +501,15 @@ function compute(st) {
   });
 
   // --- підсумки
-  const noClient = { name: T.noClient, color: NO_CLIENT_COLOR, pallets: 0, kg: 0 };
+  const noClient = { name: T.noClient, color: NO_CLIENT_COLOR, pallets: 0, kg: 0, products: new Map() };
   pallets.forEach(p => {
     const c = p.r.clientInfo || noClient;
     c.pallets++; c.kg = round2(c.kg + p.kg);
+    // розбивка по товарах усередині клієнта
+    const pr = p.r.product;
+    if (!c.products.has(pr.id)) c.products.set(pr.id, { name: pr.name, kg: 0, pallets: 0 });
+    const x = c.products.get(pr.id);
+    x.pallets++; x.kg = round2(x.kg + p.kg);
   });
   const clientSum = [...clients.values()].filter(c => c.pallets);
   if (noClient.pallets) clientSum.push(noClient);
@@ -655,7 +667,9 @@ function update() {
   const names = [...new Set(state.positions.map(x => String(x.client || '').trim()).filter(Boolean))];
   $('clients-list').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
   $('clients-sum').innerHTML = R.clientSum.length ? `<h3>${T.byClient}</h3>` + R.clientSum.map(c =>
-    `<div class="client-row"><span class="dot" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span>${T.clientLine(c.pallets, fmt(c.kg))}</span></div>`).join('') : '';
+    `<div class="client-block"><div class="client-row"><span class="dot" style="background:${c.color}"></span><span class="nm"><b>${esc(c.name)}</b></span><span>${T.clientLine(c.pallets, fmt(c.kg))}</span></div>` +
+    [...c.products.values()].map(x => `<div class="client-prod"><span class="nm">${esc(x.name)}</span><span>${T.prodLine(fmt(x.kg), x.pallets)}</span></div>`).join('') +
+    `</div>`).join('') : '';
   $('free').innerHTML = (R.freeKg >= 0 && R.freeSlots >= 0 ? T.free(fmt(R.freeKg), R.freeSlots) + ' ' : '') + R.limiter;
 
   // перевірки
@@ -1018,6 +1032,15 @@ async function buildPdfDoc() {
         box(T.totPallets, `${R.tot.pallets} / ${R.S.truckSlots}`, overSl),
       ], columnGap: 8 },
     { text: (R.freeKg >= 0 && R.freeSlots >= 0 ? plain(T.free(fmt(R.freeKg), R.freeSlots)) + ' ' : '') + R.limiter, margin: [0, 6, 0, 0] },
+    ...(R.clientSum.length ? [
+      { text: T.byClient, fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
+      { table: { headerRows: 0, widths: [8, '*', 70, 50],
+          body: R.clientSum.flatMap(c => [
+            [{ text: '', fillColor: c.color }, { text: c.name, bold: true }, { text: `${fmt(c.kg)} кг`, bold: true, alignment: 'right' }, { text: `${c.pallets} пал.`, bold: true, alignment: 'right' }],
+            ...[...c.products.values()].map(x => [{ text: '' }, { text: x.name, color: '#4b5563', margin: [10, 0, 0, 0] }, { text: `${fmt(x.kg)} кг`, alignment: 'right', color: '#4b5563' }, { text: `${x.pallets} пал.`, alignment: 'right', color: '#4b5563' }]),
+          ]) },
+        layout: 'lightHorizontalLines' },
+    ] : []),
     { text: T.checks, fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
     R.messages.length
       ? { ul: R.messages.map(m => ({ text: m.text, color: m.level === 'err' ? '#c62828' : '#b45309' })) }
@@ -1031,7 +1054,7 @@ async function buildPdfDoc() {
   // позиції
   const posRows = R.results.filter(r => r.product).map(r => [
     { text: String(r.n) },
-    { text: r.product.name },
+    { text: (r.client ? r.client + ' · ' : '') + r.product.name },
     { text: T.modes[r.pos.mode] + (r.kgRequested !== null ? ` (${fmt(r.kgRequested)} кг)` : r.pos.mode !== 'fill' && r.pos.value ? `: ${r.pos.value}` : '') },
     { text: r.active ? fmt(r.boxes) : '—', alignment: 'right' },
     { text: r.active ? fmt(r.kg) : '—', alignment: 'right' },
