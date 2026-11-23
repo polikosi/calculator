@@ -168,6 +168,8 @@
   #save-hint{flex-basis:100%}
   input.bad{border-color:var(--err);background:#fff5f5;outline-color:#fdecec}
   .fld-err{font-size:12px;color:var(--err);min-height:0}
+  button.danger-outline{color:var(--err);border-color:#f1b4b4}
+  button.danger-outline:hover{background:#fdecec}
   .btn-sm{min-height:34px;padding:0 10px;font-size:13px;border-radius:7px;background:#fff;border:1px solid #c4cad4}
   .btn-sm.danger{color:var(--err);border-color:#f1b4b4}
   .btn-sm.danger:hover{background:#fdecec}
@@ -288,6 +290,7 @@
     <button id="btn-copy-to-top"></button>
     <button id="btn-save-tpl"></button>
     <button id="btn-clear"></button>
+    <button id="btn-wipe" class="danger-outline"></button>
     <span class="confirm" id="clear-confirm">
       <span id="t-clear-q"></span>
       <button class="primary" id="btn-clear-yes"></button>
@@ -357,7 +360,9 @@ const T = {
   settingsBtn: 'Налаштування',
   catalogBtn: 'Довідник товарів',
   clearBtn: 'Новий рейс',
-  clearQ: 'Почати новий рейс? Клієнти й товари буде видалено.',
+  clearQ: 'Почати новий рейс? Клієнти й товари буде видалено (адреса завантаження, платник і режим лишаться).',
+  wipeBtn: 'Очистити все',
+  wipeQ: 'Очистити все? Усі поля рейсу й клієнти буде видалено.',
   yes: 'Так', no: 'Скасувати',
   settings: 'Ліміти фури',
   sTruck: 'Макс. вага продукту у фурі, кг',
@@ -440,7 +445,7 @@ const T = {
     delClient: 'Забути клієнта', delItem: 'Забути',
   },
   xlsx: {
-    btn: 'Завантажити Excel', lbl: 'Назва файлу', ok: 'Завантажити', cancel: 'Скасувати',
+    btn: '↓ Excel', btnTitle: 'Завантажити Transport Order в Excel (.xlsx)', lbl: 'Назва файлу', ok: 'Завантажити', cancel: 'Скасувати',
     preparing: 'Готую Excel…', saved: 'Excel готовий', failed: 'Не вдалося створити Excel. Спробуйте ще раз',
   },
   tpl: {
@@ -480,7 +485,7 @@ const T = {
     opened: 'Відкрито рейс з історії.',
   },
   pdf: {
-    btn: 'Завантажити PDF',
+    btn: '↓ PDF', btnTitle: 'Завантажити PDF',
     preparing: 'Готую PDF…',
     saved: 'PDF готовий',
     declined: 'Збереження скасовано',
@@ -1033,8 +1038,8 @@ function renderStatic() {
   txt('btn-tpl-export', T.tpl.export); txt('t-tpl-import', T.tpl.import); txt('t-hist', T.hist.title);
   txt('btn-save-tpl', T.tpl.saveBtn); txt('t-save-lbl', T.tpl.nameLbl); txt('save-ok', T.tpl.ok); txt('save-cancel', T.tpl.cancel);
   $('save-name').placeholder = T.tpl.namePh; $('hist-search').placeholder = T.hist.searchPh; $('tpl-search').placeholder = T.tpl.searchPh;
-  txt('btn-clear', T.clearBtn);
-  txt('btn-xlsx', T.xlsx.btn); txt('t-xlsx-lbl', T.xlsx.lbl); txt('xlsx-ok', T.xlsx.ok); txt('xlsx-cancel', T.xlsx.cancel);
+  txt('btn-clear', T.clearBtn); txt('btn-wipe', T.wipeBtn);
+  txt('btn-xlsx', T.xlsx.btn); $('btn-xlsx').title = T.xlsx.btnTitle; $('btn-pdf').title = T.pdf.btnTitle; txt('t-xlsx-lbl', T.xlsx.lbl); txt('xlsx-ok', T.xlsx.ok); txt('xlsx-cancel', T.xlsx.cancel);
   txt('t-mem', T.mem.title); txt('t-mem-sub', T.mem.sub);
   txt('t-clear-q', T.clearQ); txt('btn-clear-yes', T.yes); txt('btn-clear-no', T.no);
   txt('t-settings', T.settings); txt('t-products', T.products); txt('t-products-sub', T.productsSub);
@@ -1712,16 +1717,25 @@ $('hist-list').addEventListener('click', e => {
   const h = tripHistory.find(x => String(x.tripId) === b.closest('[data-hid]').dataset.hid);
   if (h) { state.source = { kind: 'hist', name: histName(h) }; loadSnapshot(h, true); showView('trip'); setPdfStatus(T.hist.opened); }
 });
-$('btn-clear').onclick = () => { $('clear-confirm').classList.add('show'); $('btn-clear').style.display = 'none'; };
-const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; };
+// «Новий рейс» (лишає адресу завантаження, платника, режим) і «Очистити все» (усе з нуля)
+let clearMode = 'new';
+const askClear = mode => {
+  clearMode = mode;
+  $('t-clear-q').textContent = mode === 'wipe' ? T.wipeQ : T.clearQ;
+  $('clear-confirm').classList.add('show');
+  $('btn-clear').style.display = 'none'; $('btn-wipe').style.display = 'none';
+};
+$('btn-clear').onclick = () => askClear('new');
+$('btn-wipe').onclick = () => askClear('wipe');
+const hideConfirm = () => { $('clear-confirm').classList.remove('show'); $('btn-clear').style.display = ''; $('btn-wipe').style.display = ''; };
 $('btn-clear-no').onclick = hideConfirm;
 $('btn-clear-yes').onclick = () => {
   archiveTrip();
   state.source = null;
   state.tripId = Date.now();
-  // новий рейс: адреса завантаження, платник і режим лишаються
   const t = state.trip;
-  state.trip = { ...emptyTrip(), loadAddress: t.loadAddress, payer: t.payer, temp: t.temp };
+  state.trip = clearMode === 'wipe' ? emptyTrip() : { ...emptyTrip(), loadAddress: t.loadAddress, payer: t.payer, temp: t.temp };
+  $('save-pop').hidden = true; $('xlsx-pop').hidden = true; setPdfStatus('');
   const first = state.products[0];
   state.clients = [{ id: newId(), name: '', address: '', delivery: '', collapsed: false, items: [{ id: newId(), productId: first ? first.id : null, mode: 'kg', value: '' }] }];
   hideConfirm(); renderTrip(); renderClients(); update();
